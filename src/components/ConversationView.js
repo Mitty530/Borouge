@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -25,6 +25,9 @@ const ConversationView = ({ initialQuery, onBack }) => {
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [expandedSections, setExpandedSections] = useState({});
+  const [currentView, setCurrentView] = useState('article-list'); // 'article-list' or 'article-detail'
+  const [selectedArticle, setSelectedArticle] = useState(null);
+  const [articlesData, setArticlesData] = useState(null);
   const messagesEndRef = useRef(null);
   const responseHeaderRef = useRef(null);
 
@@ -39,49 +42,49 @@ const ConversationView = ({ initialQuery, onBack }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const handleArticleSelect = (article) => {
+    setSelectedArticle(article);
+    setCurrentView('article-detail');
+    // Clear any existing follow-up messages when switching to detail view
+    setNewMessage('');
 
-  useEffect(() => {
-    if (initialQuery) {
-      // Add initial user message
-      const userMessage = {
-        id: 1,
-        type: 'user',
-        content: initialQuery,
-        timestamp: new Date()
-      };
+    // Scroll to top of detail view
+    setTimeout(() => {
+      if (responseHeaderRef.current) {
+        responseHeaderRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        });
+      }
+    }, 100);
+  };
 
-      setMessages([userMessage]);
-      setIsLoading(true);
+  const getPriorityClass = (priorityLabel) => {
+    if (!priorityLabel) return '';
 
-      // Simulate AI response after delay
-      setTimeout(() => {
-        const aiResponse = {
-          id: 2,
-          type: 'assistant',
-          content: generateMockResponse(initialQuery),
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, aiResponse]);
-        setIsLoading(false);
-
-        // Scroll to response header after a brief delay to allow rendering
-        setTimeout(() => {
-          if (responseHeaderRef.current) {
-            responseHeaderRef.current.scrollIntoView({
-              behavior: 'smooth',
-              block: 'start',
-              inline: 'nearest'
-            });
-          }
-        }, 100);
-      }, 2000);
+    const label = priorityLabel.toLowerCase();
+    if (label.includes('critical') || label.includes('regulatory')) {
+      return 'priority-critical';
+    } else if (label.includes('high') || label.includes('financial')) {
+      return 'priority-high';
+    } else if (label.includes('competitive') || label.includes('threat')) {
+      return 'priority-medium';
+    } else if (label.includes('opportunity')) {
+      return 'priority-opportunity';
+    } else if (label.includes('strategic')) {
+      return 'priority-strategic';
     }
-  }, [initialQuery]);
+    return 'priority-strategic'; // default
+  };
 
-  const generateMockResponse = (query) => {
+  const handleBackToArticles = () => {
+    setCurrentView('article-list');
+    setSelectedArticle(null);
+    setNewMessage('');
+  };
+
+  const generateMockResponse = useCallback((query) => {
     const lowerQuery = query.toLowerCase();
 
     // Generate multiple prioritized articles based on query
@@ -100,7 +103,53 @@ const ConversationView = ({ initialQuery, onBack }) => {
     } else {
       return generatePrioritizedArticles('general', query); // Default response
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    if (initialQuery) {
+      // Add initial user message
+      const userMessage = {
+        id: 1,
+        type: 'user',
+        content: initialQuery,
+        timestamp: new Date()
+      };
+
+      setMessages([userMessage]);
+      setIsLoading(true);
+      setCurrentView('article-list'); // Start with article list view
+
+      // Simulate AI response after delay
+      setTimeout(() => {
+        const responseData = generateMockResponse(initialQuery);
+        setArticlesData(responseData); // Store articles data separately
+
+        const aiResponse = {
+          id: 2,
+          type: 'assistant',
+          content: responseData,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, aiResponse]);
+        setIsLoading(false);
+
+        // Scroll to response header after a brief delay to allow rendering
+        setTimeout(() => {
+          if (responseHeaderRef.current) {
+            responseHeaderRef.current.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start',
+              inline: 'nearest'
+            });
+          }
+        }, 100);
+      }, 2000);
+    }
+  }, [initialQuery, generateMockResponse]);
 
   const generatePrioritizedArticles = (category, originalQuery) => {
     const articles = [];
@@ -605,25 +654,28 @@ const ConversationView = ({ initialQuery, onBack }) => {
   };
 
   const handleSendMessage = () => {
-    if (newMessage.trim()) {
+    if (newMessage.trim() && currentView === 'article-detail' && selectedArticle) {
       const userMessage = {
         id: messages.length + 1,
         type: 'user',
         content: newMessage,
-        timestamp: new Date()
+        timestamp: new Date(),
+        articleContext: selectedArticle.reportType // Add context for follow-up
       };
 
       setMessages(prev => [...prev, userMessage]);
       setNewMessage('');
       setIsLoading(true);
 
-      // Simulate AI response
+      // Simulate AI response with article context
       setTimeout(() => {
+        const contextualResponse = generateContextualResponse(newMessage, selectedArticle);
         const aiResponse = {
           id: messages.length + 2,
           type: 'assistant',
-          content: generateMockResponse(newMessage),
-          timestamp: new Date()
+          content: contextualResponse,
+          timestamp: new Date(),
+          articleContext: selectedArticle.reportType
         };
         setMessages(prev => [...prev, aiResponse]);
         setIsLoading(false);
@@ -655,6 +707,18 @@ const ConversationView = ({ initialQuery, onBack }) => {
     // In real implementation, use jsPDF or similar
   };
 
+  const generateContextualResponse = (question, article) => {
+    // Generate contextual follow-up responses based on the selected article
+    return {
+      responseType: 'contextual_followup',
+      originalQuestion: question,
+      articleContext: article.reportType,
+      response: `Based on the ${article.reportType} analysis, here's additional insight regarding your question: "${question}"\n\nThis contextual response would provide specific details related to the article's findings and recommendations, maintaining focus on the selected topic while addressing the user's follow-up inquiry.`,
+      relatedFindings: article.detailedFindings?.slice(0, 2) || [],
+      additionalRecommendations: article.nextSteps?.slice(0, 2) || article.allRecommendations?.slice(0, 2) || []
+    };
+  };
+
   const copyMessage = (content) => {
     navigator.clipboard.writeText(typeof content === 'string' ? content : JSON.stringify(content));
   };
@@ -669,15 +733,27 @@ const ConversationView = ({ initialQuery, onBack }) => {
     >
       {/* Header */}
       <div className="conversation-header">
-        <motion.button
-          className="back-btn"
-          onClick={onBack}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <ArrowLeft size={20} />
-          Back to Search
-        </motion.button>
+        {currentView === 'article-list' ? (
+          <motion.button
+            className="back-btn"
+            onClick={onBack}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ArrowLeft size={20} />
+            Back to Search
+          </motion.button>
+        ) : (
+          <motion.button
+            className="back-btn"
+            onClick={handleBackToArticles}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ArrowLeft size={20} />
+            Back to Articles
+          </motion.button>
+        )}
 
         <div className="conversation-actions">
           <motion.button
@@ -703,56 +779,170 @@ const ConversationView = ({ initialQuery, onBack }) => {
       {/* Messages */}
       <div className="messages-container">
         <AnimatePresence>
-          {messages.map((message, messageIndex) => (
-            <motion.div
-              key={message.id}
-              className={`message ${message.type}`}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {message.type === 'user' ? (
-                <div className="user-message">
-                  <div className="message-content">{message.content}</div>
-                  <div className="message-time">
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          {currentView === 'article-list' ? (
+            // Article List View - Show user query and article previews
+            <>
+              {messages.filter(msg => msg.type === 'user').map((message, messageIndex) => (
+                <motion.div
+                  key={message.id}
+                  className={`message ${message.type}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div className="user-message">
+                    <div className="message-content">{message.content}</div>
+                    <div className="message-time">
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
                   </div>
-                </div>
-              ) : (
-                <div className="ai-message">
-                  <div className="ai-response">
-                    {typeof message.content === 'object' ? (
-                      message.content.responseType === 'multi_article' ? (
-                        <div className="multi-article-response">
-                          <div
-                            className="response-header"
-                            ref={messageIndex === messages.length - 1 ? responseHeaderRef : null}
-                          >
-                            <h3>Intelligence Analysis: {message.content.originalQuery}</h3>
-                            <div className="articles-summary">
-                              <span className="articles-count">{message.content.totalArticles} Articles Found</span>
-                              <span className="priority-note">Sorted by criticality and business impact</span>
-                            </div>
+                </motion.div>
+              ))}
+
+              {articlesData && (
+                <motion.div
+                  className="articles-list-view"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  ref={responseHeaderRef}
+                >
+                  <div className="articles-header">
+                    <h3>Intelligence Analysis: {articlesData.originalQuery}</h3>
+                    <div className="articles-summary">
+                      <span className="articles-count">{articlesData.totalArticles} Articles Found</span>
+                      <span className="priority-note">Sorted by criticality and business impact</span>
+                    </div>
+                  </div>
+
+                  <div className="articles-grid">
+                    {articlesData.articles.map((article, index) => (
+                      <motion.div
+                        key={article.articleId || index}
+                        className={`article-preview-card ${getPriorityClass(article.priorityLabel)}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        whileHover={{ scale: 1.01, y: -2 }}
+                        onClick={() => handleArticleSelect(article)}
+                      >
+                        <div className="article-priority-badge">
+                          <span className="priority-number">#{index + 1}</span>
+                          <span className="priority-label">{article.priorityLabel}</span>
+                        </div>
+
+                        <div className="article-preview-content">
+                          <h4 className="article-title">{article.reportType}</h4>
+
+                          <div className="article-summary">
+                            {article.problem && (
+                              <p className="problem-preview">{article.problem}</p>
+                            )}
+                            {article.executiveSummary && !article.problem && (
+                              <p className="executive-summary-preview">
+                                {article.executiveSummary.length > 250
+                                  ? article.executiveSummary.substring(0, 250) + '...'
+                                  : article.executiveSummary}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="article-preview-footer">
+                          <div className="article-impact-indicators">
+                            {article.impact && (
+                              <div className="impact-indicator">
+                                <TrendingUp size={12} />
+                                <span>{article.impact}</span>
+                              </div>
+                            )}
+                            {article.urgency && (
+                              <div className="urgency-indicator">
+                                <Clock size={12} />
+                                <span>{article.urgency}</span>
+                              </div>
+                            )}
+                            {article.marketImpact?.revenueAtRisk && (
+                              <div className="revenue-indicator">
+                                <DollarSign size={12} />
+                                <span>{article.marketImpact.revenueAtRisk}</span>
+                              </div>
+                            )}
                           </div>
 
-                          {message.content.articles.map((article, articleIndex) => (
-                            <div key={article.articleId || articleIndex} className="article-container">
-                              <div className="article-priority-header">
-                                <div className="priority-badge-large">
-                                  <span className="priority-number">#{articleIndex + 1}</span>
-                                  <span className="priority-label">{article.priorityLabel}</span>
+                          <span className="read-more">Read Analysis →</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </>
+          ) : (
+            // Article Detail View - Show conversation with selected article
+            <>
+              {messages.map((message, messageIndex) => (
+                <motion.div
+                  key={message.id}
+                  className={`message ${message.type}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {message.type === 'user' ? (
+                    <div className="user-message">
+                      <div className="message-content">{message.content}</div>
+                      <div className="message-time">
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="ai-message">
+                      <div className="ai-response">
+                        {typeof message.content === 'object' ? (
+                          message.content.responseType === 'contextual_followup' ? (
+                            // Contextual follow-up response
+                            <div className="contextual-response">
+                              <div className="response-header">
+                                <h3>Follow-up Analysis: {message.content.articleContext}</h3>
+                                <div className="context-note">
+                                  <span>Contextual response based on selected article</span>
                                 </div>
+                              </div>
+                              <div className="contextual-content">
+                                <p>{message.content.response}</p>
+                                {message.content.relatedFindings.length > 0 && (
+                                  <div className="related-findings">
+                                    <h4>Related Findings</h4>
+                                    {message.content.relatedFindings.map((finding, index) => (
+                                      <div key={index} className="finding-summary">
+                                        <strong>{finding.title}</strong>
+                                        <p>{finding.description}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : selectedArticle ? (
+                            // Show selected article in detail
+                            <div className="article-detail-view">
+                              <div className="article-detail-header">
+                                <div className="priority-badge-large">
+                                  <span className="priority-label">{selectedArticle.priorityLabel}</span>
+                                </div>
+                                <h3>{selectedArticle.reportType}</h3>
                               </div>
 
                               <div className="intelligence-report simplified">
                                 <div className="report-header">
                                   <div className="report-title-section">
-                                    <h3>{article.reportType || 'ESG Intelligence Report'}</h3>
                                     <div className="report-actions">
                                       <button
                                         className="copy-btn secondary"
-                                        onClick={() => copyMessage(article)}
+                                        onClick={() => copyMessage(selectedArticle)}
                                         title="Copy article"
                                       >
                                         <Copy size={14} />
@@ -762,42 +952,42 @@ const ConversationView = ({ initialQuery, onBack }) => {
                                 </div>
 
                                 {/* Problem-Solution Summary */}
-                                {(article.problem || article.executiveSummary) && (
+                                {(selectedArticle.problem || selectedArticle.executiveSummary) && (
                                   <div className="problem-solution-summary">
-                                    {article.problem && (
+                                    {selectedArticle.problem && (
                                       <div className="problem-statement">
                                         <div className="problem-icon">
                                           <AlertTriangle size={20} />
                                         </div>
                                         <div className="problem-content">
                                           <h4>Business Challenge</h4>
-                                          <p>{article.problem}</p>
-                                          {article.impact && article.urgency && (
+                                          <p>{selectedArticle.problem}</p>
+                                          {selectedArticle.impact && selectedArticle.urgency && (
                                             <div className="impact-highlight">
-                                              <span className="impact-text">{article.impact}</span>
-                                              <span className="urgency-text">{article.urgency}</span>
+                                              <span className="impact-text">{selectedArticle.impact}</span>
+                                              <span className="urgency-text">{selectedArticle.urgency}</span>
                                             </div>
                                           )}
                                         </div>
                                       </div>
                                     )}
 
-                                    {article.opportunity && (
+                                    {selectedArticle.opportunity && (
                                       <div className="opportunity-statement">
                                         <div className="opportunity-icon">
                                           <Target size={20} />
                                         </div>
                                         <div className="opportunity-content">
                                           <h4>Market Opportunity</h4>
-                                          <p>{article.opportunity}</p>
+                                          <p>{selectedArticle.opportunity}</p>
                                         </div>
                                       </div>
                                     )}
 
-                                    {article.executiveSummary && !article.problem && (
+                                    {selectedArticle.executiveSummary && !selectedArticle.problem && (
                                       <div className="executive-summary">
                                         <h4>Executive Summary</h4>
-                                        <p>{article.executiveSummary}</p>
+                                        <p>{selectedArticle.executiveSummary}</p>
                                       </div>
                                     )}
                                   </div>
@@ -807,7 +997,7 @@ const ConversationView = ({ initialQuery, onBack }) => {
                                 <div className="key-insights">
                                   <h4>Critical Findings</h4>
                                   <div className="insights-grid">
-                                    {(article.topFindings || article.keyFindings?.slice(0, 3) || []).map((finding, index) => (
+                                    {(selectedArticle.topFindings || selectedArticle.keyFindings?.slice(0, 3) || []).map((finding, index) => (
                                       <motion.div
                                         key={index}
                                         className="insight-card"
@@ -842,19 +1032,19 @@ const ConversationView = ({ initialQuery, onBack }) => {
                                 {/* Collapsible Detailed Analysis */}
                                 <div className="detailed-sections">
                                   {/* Detailed Findings - Always show if there are findings */}
-                                  {(article.detailedFindings && article.detailedFindings.length > 0) && (
+                                  {(selectedArticle.detailedFindings && selectedArticle.detailedFindings.length > 0) && (
                                     <div className="collapsible-section">
                                       <button
                                         className="section-toggle"
-                                        onClick={() => toggleSection(`${message.id}-${articleIndex}`, 'detailed-findings')}
+                                        onClick={() => toggleSection(`${message.id}-detail`, 'detailed-findings')}
                                       >
                                         <span>Detailed Analysis</span>
-                                        {expandedSections[`${message.id}-${articleIndex}-detailed-findings`] ?
+                                        {expandedSections[`${message.id}-detail-detailed-findings`] ?
                                           <ChevronUp size={16} /> : <ChevronDown size={16} />
                                         }
                                       </button>
 
-                                      {expandedSections[`${message.id}-${articleIndex}-detailed-findings`] && (
+                                      {expandedSections[`${message.id}-detail-detailed-findings`] && (
                                         <motion.div
                                           className="section-content"
                                           initial={{ opacity: 0, height: 0 }}
@@ -862,7 +1052,7 @@ const ConversationView = ({ initialQuery, onBack }) => {
                                           exit={{ opacity: 0, height: 0 }}
                                         >
                                           <div className="detailed-findings">
-                                            {(article.detailedFindings || []).map((finding, index) => (
+                                            {(selectedArticle.detailedFindings || []).map((finding, index) => (
                                       <motion.div
                                         key={index}
                                         className={`finding-card ${finding.isBorogueSpecific ? 'borouge-recommendation' : ''}`}
@@ -943,15 +1133,15 @@ const ConversationView = ({ initialQuery, onBack }) => {
                                   <div className="collapsible-section">
                                     <button
                                       className="section-toggle"
-                                      onClick={() => toggleSection(`${message.id}-${articleIndex}`, 'sources')}
+                                      onClick={() => toggleSection(`${message.id}-detail`, 'sources')}
                                     >
-                                      <span>Sources & References ({article.sources?.length || 0})</span>
-                                      {expandedSections[`${message.id}-${articleIndex}-sources`] ?
+                                      <span>Sources & References ({selectedArticle.sources?.length || 0})</span>
+                                      {expandedSections[`${message.id}-detail-sources`] ?
                                         <ChevronUp size={16} /> : <ChevronDown size={16} />
                                       }
                                     </button>
 
-                                    {expandedSections[`${message.id}-${articleIndex}-sources`] && (
+                                    {expandedSections[`${message.id}-detail-sources`] && (
                                       <motion.div
                                         className="section-content"
                                         initial={{ opacity: 0, height: 0 }}
@@ -960,7 +1150,7 @@ const ConversationView = ({ initialQuery, onBack }) => {
                                       >
                                         <div className="sources-section">
                                           <div className="sources-grid">
-                                            {article.sources?.map((source, index) => (
+                                            {selectedArticle.sources?.map((source, index) => (
                                               <div key={index} className="source-card">
                                                 <div className="source-header">
                                                   <ExternalLink size={14} />
@@ -986,38 +1176,20 @@ const ConversationView = ({ initialQuery, onBack }) => {
                                 </div>
                               </div>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="intelligence-report simplified">
-                          <div className="report-header">
-                            <div className="report-title-section">
-                              <h3>{message.content.reportType || 'ESG Intelligence Report'}</h3>
-                              <div className="report-actions">
-                                <button
-                                  className="copy-btn secondary"
-                                  onClick={() => copyMessage(message.content)}
-                                  title="Copy report"
-                                >
-                                  <Copy size={14} />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          {/* Single article content would go here - keeping existing structure */}
-                        </div>
-                      )
-                    ) : (
-                      <div className="simple-response">{message.content}</div>
-                    )}
-                  </div>
-                  <div className="message-time">
-                    {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          ))}
+                          ) : null
+                        ) : (
+                          <div className="simple-response">{message.content}</div>
+                        )}
+                      </div>
+                      <div className="message-time">
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </>
+          )}
         </AnimatePresence>
 
         {isLoading && (
@@ -1036,28 +1208,30 @@ const ConversationView = ({ initialQuery, onBack }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="message-input-container">
-        <div className="message-input-box">
-          <textarea
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Ask a follow-up question about ESG intelligence..."
-            className="message-input"
-            rows="1"
-          />
-          <motion.button
-            className="send-btn"
-            onClick={handleSendMessage}
-            disabled={!newMessage.trim() || isLoading}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Send size={18} />
-          </motion.button>
+      {/* Input - Only show in article detail view */}
+      {currentView === 'article-detail' && selectedArticle && (
+        <div className="message-input-container">
+          <div className="message-input-box">
+            <textarea
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={`Ask a follow-up question about "${selectedArticle.reportType}"...`}
+              className="message-input"
+              rows="1"
+            />
+            <motion.button
+              className="send-btn"
+              onClick={handleSendMessage}
+              disabled={!newMessage.trim() || isLoading}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Send size={18} />
+            </motion.button>
+          </div>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 };
