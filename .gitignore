@@ -146,6 +146,8 @@ backend/logs/
 **/.env
 **/.env.*
 !**/.env.example
+**/APIs
+backend/APIs
 
 # Cache files
 .cache/
