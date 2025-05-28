@@ -188,3 +188,18 @@ This is a private repository for Borouge ESG Intelligence Platform development.
 ---
 
 **Built with ❤️ for Borouge's ESG Intelligence needs**
+
+## Frontend Architecture Details
+
+### **React Components**
+- **ConversationView**: Main intelligence interface with article-based responses
+- **Article System**: Priority-based display (Critical Regulatory Compliance → High Financial Impact)
+- **Search Interface**: Intelligent query processing with suggestion chips
+- **Responsive Design**: Optimized for desktop and mobile devices
+
+### **Technology Stack**
+- **Frontend**: React with modern hooks and functional components
+- **Styling**: CSS modules with responsive design
+- **Animations**: Framer Motion for smooth transitions
+- **Icons**: Lucide React for consistent iconography
+- **State Management**: React hooks (useState, useEffect)
