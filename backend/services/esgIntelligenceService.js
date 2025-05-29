@@ -13,26 +13,13 @@ class ESGIntelligenceService {
   }
 
   // Main ESG intelligence processing endpoint
-  async processQuery(query, isFollowUp = false, previousContext = null) {
+  async processQuery(query) {
     const startTime = Date.now();
 
     try {
       console.log(`🔍 Processing ESG query: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}"`);
-      console.log(`📊 Follow-up: ${isFollowUp}, Has context: ${!!previousContext}`);
 
-      // For follow-up queries, skip cache and process directly
-      if (isFollowUp) {
-        console.log('⏭️ Follow-up query detected, skipping cache check...');
-        const aiResult = await this.aiService.analyzeQuery(query, isFollowUp, previousContext);
-        const response = this.structureResponse(aiResult, query, startTime);
-
-        // Track follow-up analytics
-        await this.trackFollowUpAnalytics(query, previousContext);
-
-        return response;
-      }
-
-      // Check cache first for new queries
+      // Check cache first
       const cachedResult = await this.cacheService.checkCache(query);
       if (cachedResult) {
         console.log('🎯 Returning cached result');
@@ -48,7 +35,7 @@ class ESGIntelligenceService {
 
       // Process with AI if not cached
       console.log('🤖 Processing new query with AI...');
-      const aiResult = await this.aiService.analyzeQuery(query, isFollowUp, previousContext);
+      const aiResult = await this.aiService.analyzeQuery(query);
       const response = this.structureResponse(aiResult, query, startTime);
 
       // Cache the result for future use
@@ -72,224 +59,22 @@ class ESGIntelligenceService {
 
     console.log(`📋 Structuring response for frontend (${responseTime}ms)`);
 
-    // Ensure we have exactly 2 articles as per user preference
-    const articles = aiResult.articles ? aiResult.articles.slice(0, 2) : this.generateFallbackArticles(query);
-
-    // Sort articles by priority (Critical Regulatory → High Financial → etc.)
-    const sortedArticles = this.sortArticlesByPriority(articles);
-
     const response = {
       success: true,
       timestamp: new Date().toISOString(),
       query: query,
-      articlesFound: sortedArticles.length,
       responseTime: responseTime,
       cached: false,
-
-      // Overall classification based on highest priority article
-      priority: this.determineOverallPriority(sortedArticles),
-      classification: sortedArticles[0]?.priorityLabel || "ESG INTELLIGENCE ANALYSIS",
-
-      // Executive summary
-      executiveSummary: aiResult.executiveSummary || this.generateExecutiveSummary(query, sortedArticles),
-
-      // Articles for two-stage interaction flow
-      articles: sortedArticles,
-
-      // Overall risk assessment
-      overallRiskLevel: aiResult.overallRiskLevel || "MEDIUM",
-
-      // Source tracking
-      totalSources: aiResult.totalSources || sortedArticles.reduce((sum, article) => sum + (article.sources || 0), 0),
-
-      // Follow-up capabilities
-      followUpCapable: true,
-      suggestedFollowUps: this.generateFollowUpSuggestions(query, sortedArticles),
-
-      // Context for follow-up queries
-      context: {
-        originalQuery: query,
-        articles: sortedArticles.map(article => ({
-          id: article.articleId,
-          type: article.reportType,
-          priority: article.priorityLabel
-        })),
-        riskLevel: aiResult.overallRiskLevel || "MEDIUM"
-      }
+      response: aiResult.response || `Thank you for your query: "${query}". The system has been cleaned and is ready for the new implementation.`
     };
 
-    console.log(`✅ Response structured: ${response.articlesFound} articles, ${response.totalSources} sources`);
+    console.log(`✅ Response structured for simplified interface`);
     return response;
   }
 
-  // Sort articles by priority for frontend display
-  sortArticlesByPriority(articles) {
-    const priorityOrder = {
-      'CRITICAL REGULATORY COMPLIANCE': 1,
-      'HIGH FINANCIAL IMPACT': 2,
-      'COMPETITIVE THREATS': 3,
-      'OPPORTUNITIES': 4,
-      'STRATEGIC CONSIDERATIONS': 5
-    };
 
-    return articles.sort((a, b) => {
-      const priorityA = priorityOrder[a.priorityLabel] || 6;
-      const priorityB = priorityOrder[b.priorityLabel] || 6;
-      return priorityA - priorityB;
-    });
-  }
 
-  // Determine overall priority based on articles
-  determineOverallPriority(articles) {
-    if (!articles || articles.length === 0) return "MEDIUM";
 
-    const highestPriorityArticle = articles[0];
-    const priorityLabel = highestPriorityArticle.priorityLabel || "";
-
-    if (priorityLabel.includes('CRITICAL') || priorityLabel.includes('REGULATORY')) {
-      return "HIGH";
-    } else if (priorityLabel.includes('HIGH') || priorityLabel.includes('FINANCIAL')) {
-      return "HIGH";
-    } else if (priorityLabel.includes('COMPETITIVE') || priorityLabel.includes('THREAT')) {
-      return "MEDIUM";
-    } else {
-      return "MEDIUM";
-    }
-  }
-
-  // Generate executive summary if not provided by AI
-  generateExecutiveSummary(query, articles) {
-    if (!articles || articles.length === 0) {
-      return `ESG intelligence analysis completed for query: "${query}". Detailed findings available for review.`;
-    }
-
-    const primaryArticle = articles[0];
-    return primaryArticle.executiveSummary ||
-           `${primaryArticle.reportType} analysis indicates ${primaryArticle.priorityLabel.toLowerCase()} implications for Borouge operations.`;
-  }
-
-  // Generate follow-up suggestions based on query and articles
-  generateFollowUpSuggestions(query, articles) {
-    const suggestions = [];
-
-    // Add context-specific follow-ups based on article types
-    articles.forEach(article => {
-      if (article.priorityLabel.includes('REGULATORY')) {
-        suggestions.push("What are the specific compliance deadlines and requirements?");
-        suggestions.push("How are competitors responding to these regulatory changes?");
-      } else if (article.priorityLabel.includes('FINANCIAL')) {
-        suggestions.push("What investment options could reduce our financial exposure?");
-        suggestions.push("What is the ROI timeline for recommended investments?");
-      } else if (article.priorityLabel.includes('COMPETITIVE')) {
-        suggestions.push("How can Borouge differentiate from competitor strategies?");
-        suggestions.push("What are the competitive advantages we can leverage?");
-      }
-    });
-
-    // Add general follow-ups
-    suggestions.push("What are the immediate next steps for implementation?");
-    suggestions.push("How does this impact our 2030 sustainability targets?");
-
-    // Return unique suggestions, limited to 4
-    return [...new Set(suggestions)].slice(0, 4);
-  }
-
-  // Generate fallback articles if AI doesn't provide structured response
-  generateFallbackArticles(query) {
-    return [
-      {
-        articleId: 1,
-        reportType: "ESG Intelligence Analysis",
-        priorityLabel: "CRITICAL REGULATORY COMPLIANCE",
-        priority: "HIGH",
-        executiveSummary: `Comprehensive ESG analysis completed for: "${query}". Detailed regulatory and business impact assessment available.`,
-        keyFindings: [
-          {
-            priority: "HIGH",
-            title: "Analysis Completed",
-            description: "ESG intelligence analysis has been generated for strategic review",
-            businessImpact: "Review detailed findings for business implications"
-          }
-        ],
-        detailedAnalysis: `Detailed ESG intelligence analysis for query: "${query}". This analysis covers regulatory implications, competitive positioning, and strategic recommendations specific to Borouge's operations.`,
-        financialImpact: {
-          shortTerm: "Impact assessment in progress",
-          longTerm: "Long-term implications under evaluation",
-          investmentRequired: "Investment analysis required"
-        },
-        actionItems: [
-          "Review detailed analysis with relevant teams",
-          "Assess regulatory compliance requirements",
-          "Evaluate strategic implications"
-        ],
-        sources: 5
-      },
-      {
-        articleId: 2,
-        reportType: "Strategic Recommendations",
-        priorityLabel: "HIGH FINANCIAL IMPACT",
-        priority: "MEDIUM",
-        executiveSummary: "Strategic recommendations and implementation roadmap based on ESG intelligence analysis.",
-        keyFindings: [
-          {
-            priority: "MEDIUM",
-            title: "Strategic Planning Required",
-            description: "Strategic planning and stakeholder engagement recommended",
-            businessImpact: "Strategic positioning and competitive advantage considerations"
-          }
-        ],
-        detailedAnalysis: "Strategic recommendations for Borouge based on ESG intelligence analysis, including implementation timeline and resource requirements.",
-        financialImpact: {
-          shortTerm: "Strategic evaluation in progress",
-          longTerm: "Long-term strategic benefits expected",
-          investmentRequired: "Strategic investment analysis needed"
-        },
-        actionItems: [
-          "Develop implementation roadmap",
-          "Engage key stakeholders",
-          "Assess resource requirements"
-        ],
-        sources: 3
-      }
-    ];
-  }
-
-  // Track follow-up analytics
-  async trackFollowUpAnalytics(query, previousContext) {
-    try {
-      // Update follow-up count for original query if we can identify it
-      if (previousContext && previousContext.originalQuery) {
-        const { error } = await this.supabase
-          .from('esg_query_analytics')
-          .update({
-            follow_up_count: this.supabase.sql`follow_up_count + 1`
-          })
-          .eq('query', previousContext.originalQuery)
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        if (error) {
-          console.error('Follow-up analytics update error:', error);
-        }
-      }
-
-      // Track the follow-up query itself
-      await this.supabase
-        .from('esg_query_analytics')
-        .insert({
-          query: query,
-          query_type: 'follow_up',
-          response_time_ms: 0, // Will be updated when response is complete
-          sources_found: 0,
-          user_rating: null,
-          follow_up_count: 0,
-          created_at: new Date().toISOString()
-        });
-
-    } catch (error) {
-      console.error('Follow-up analytics tracking error:', error);
-    }
-  }
 
   // Track error analytics
   async trackErrorAnalytics(query, error, responseTime) {
@@ -302,7 +87,6 @@ class ESGIntelligenceService {
           response_time_ms: responseTime,
           sources_found: 0,
           user_rating: null,
-          follow_up_count: 0,
           created_at: new Date().toISOString()
         });
 

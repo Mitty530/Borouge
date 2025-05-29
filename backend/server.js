@@ -304,7 +304,6 @@ async function trackError(error, req) {
         response_time_ms: Date.now() - req.startTime,
         sources_found: 0,
         user_rating: null,
-        follow_up_count: 0,
         created_at: new Date().toISOString()
       });
   } catch (trackingError) {
@@ -401,7 +400,7 @@ app.get('/api/status', asyncHandler(async (req, res) => {
 
 // Main ESG Intelligence processing endpoint
 app.post('/api/esg-intelligence', asyncHandler(async (req, res) => {
-  const { query, followUp = false, previousContext = null } = req.body;
+  const { query } = req.body;
 
   // Validate request
   if (!query || typeof query !== 'string' || query.trim().length === 0) {
@@ -413,17 +412,16 @@ app.post('/api/esg-intelligence', asyncHandler(async (req, res) => {
   }
 
   console.log(`🔍 ESG Intelligence Request: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}"`);
-  console.log(`📊 Follow-up: ${followUp}, Has context: ${!!previousContext}`);
 
   try {
     // Process the ESG intelligence query
-    const result = await esgService.processQuery(query, followUp, previousContext);
+    const result = await esgService.processQuery(query);
 
     // Add request metadata
     result.requestId = req.headers['x-request-id'] || 'unknown';
     result.processingTime = Date.now() - req.startTime;
 
-    console.log(`✅ ESG Intelligence Response: ${result.articlesFound} articles, ${result.totalSources} sources (${result.processingTime}ms)`);
+    console.log(`✅ ESG Intelligence Response processed (${result.processingTime}ms)`);
 
     res.json(result);
 

@@ -60,96 +60,28 @@ Company Context:
 Your task is to analyze ESG queries and provide structured business intelligence specifically relevant to Borouge's operations, market position, and strategic challenges.`;
   }
 
-  // Create structured prompt for AI analysis
-  createAnalysisPrompt(query, isFollowUp = false, previousContext = null) {
+  // Create simplified prompt for AI analysis
+  createAnalysisPrompt(query) {
     const baseContext = this.getBorogueContext();
 
     let prompt = `${baseContext}
 
-${isFollowUp ? `Previous Context: ${JSON.stringify(previousContext)}` : ''}
-
 Query: "${query}"
 
-CRITICAL: Return ONLY a valid JSON object. Do not include any text before or after the JSON. Do not use markdown formatting or code blocks. Start directly with { and end with }.
+Please provide a simple response acknowledging the query and indicating that the system has been cleaned and is ready for new implementation.
 
-Provide analysis in this exact JSON structure:
-{
-  "executiveSummary": "2-3 sentence summary of business impact for Borouge executives",
-  "articles": [
-    {
-      "articleId": 1,
-      "reportType": "Critical Regulatory Compliance Analysis",
-      "priorityLabel": "CRITICAL REGULATORY COMPLIANCE",
-      "priority": "HIGH",
-      "executiveSummary": "Executive summary specific to this article",
-      "keyFindings": [
-        {
-          "priority": "HIGH",
-          "title": "Finding title",
-          "description": "Detailed description with specific numbers/impact",
-          "businessImpact": "Direct impact on Borouge operations/financials"
-        }
-      ],
-      "detailedAnalysis": "Comprehensive analysis with regulatory details, competitive implications, and strategic recommendations",
-      "financialImpact": {
-        "shortTerm": "0-2 years impact with specific numbers",
-        "longTerm": "3-5 years impact with specific numbers",
-        "investmentRequired": "Estimated investment needed"
-      },
-      "actionItems": [
-        "Specific actionable next steps for Borouge teams"
-      ],
-      "sources": 5
-    },
-    {
-      "articleId": 2,
-      "reportType": "High Financial Impact Assessment",
-      "priorityLabel": "HIGH FINANCIAL IMPACT",
-      "priority": "HIGH",
-      "executiveSummary": "Executive summary for second article",
-      "keyFindings": [
-        {
-          "priority": "MEDIUM",
-          "title": "Secondary finding title",
-          "description": "Secondary analysis",
-          "businessImpact": "Secondary business impact"
-        }
-      ],
-      "detailedAnalysis": "Second comprehensive analysis",
-      "financialImpact": {
-        "shortTerm": "Short term financial impact",
-        "longTerm": "Long term financial impact",
-        "investmentRequired": "Investment requirements"
-      },
-      "actionItems": [
-        "Additional actionable steps"
-      ],
-      "sources": 4
-    }
-  ],
-  "overallRiskLevel": "HIGH|MEDIUM|LOW",
-  "totalSources": 9
-}
-
-Focus on:
-1. Regulatory compliance impacts (EU CBAM, plastic directives, UAE regulations)
-2. Financial implications for €2.3B EU exports and $1.8B Asian markets
-3. Competitive positioning vs SABIC, Dow, ExxonMobil, LyondellBasell
-4. Sustainability opportunities and ESG compliance requirements
-5. Specific actionable recommendations for Borouge leadership
-
-Ensure exactly 2 articles with priority-based classification.`;
+Return a simple text response, not JSON.`;
 
     return prompt;
   }
 
   // Groq API integration (Primary AI Engine)
-  async analyzeWithGroq(query, isFollowUp = false, previousContext = null) {
+  async analyzeWithGroq(query) {
     if (!this.checkRateLimit('groq', this.config.groq.rateLimit)) {
       throw new Error('Groq rate limit exceeded');
     }
 
-    const prompt = this.createAnalysisPrompt(query, isFollowUp, previousContext);
+    const prompt = this.createAnalysisPrompt(query);
 
     try {
       console.log(`🔄 Making Groq API request...`);
@@ -204,12 +136,12 @@ Ensure exactly 2 articles with priority-based classification.`;
   }
 
   // Gemini API integration (Secondary AI Engine)
-  async analyzeWithGemini(query, isFollowUp = false, previousContext = null) {
+  async analyzeWithGemini(query) {
     if (!this.checkRateLimit('gemini', this.config.gemini.rateLimit)) {
       throw new Error('Gemini rate limit exceeded');
     }
 
-    const prompt = this.createAnalysisPrompt(query, isFollowUp, previousContext);
+    const prompt = this.createAnalysisPrompt(query);
 
     try {
       console.log(`🔄 Making Gemini API request...`);
@@ -265,12 +197,12 @@ Ensure exactly 2 articles with priority-based classification.`;
   }
 
   // OpenAI API integration (Emergency Backup)
-  async analyzeWithOpenAI(query, isFollowUp = false, previousContext = null) {
+  async analyzeWithOpenAI(query) {
     if (!this.config.openai.apiKey) {
       throw new Error('OpenAI API key not configured');
     }
 
-    const prompt = this.createAnalysisPrompt(query, isFollowUp, previousContext);
+    const prompt = this.createAnalysisPrompt(query);
 
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -307,15 +239,14 @@ Ensure exactly 2 articles with priority-based classification.`;
     }
   }
 
-  // Enhanced multi-provider AI analysis with intelligent selection and quality monitoring
-  async analyzeQuery(query, isFollowUp = false, previousContext = null) {
+  // Simplified AI analysis
+  async analyzeQuery(query) {
     const startTime = Date.now();
-    const queryComplexity = this.assessQueryComplexity(query);
 
-    console.log(`🔍 Starting enhanced AI analysis (complexity: ${queryComplexity})`);
+    console.log(`🔍 Starting simplified AI analysis`);
 
     // Check provider-level cache first
-    const cacheKey = this.generateProviderCacheKey(query, isFollowUp, previousContext);
+    const cacheKey = this.generateProviderCacheKey(query);
     const cachedResult = this.getFromProviderCache(cacheKey);
     if (cachedResult) {
       console.log('⚡ Returning provider-cached result');
@@ -331,45 +262,35 @@ Ensure exactly 2 articles with priority-based classification.`;
 
       try {
         // Select optimal provider based on current conditions
-        const selectedProvider = this.providerManager.selectOptimalProvider(queryComplexity, isFollowUp);
-        console.log(`🎯 Attempt ${attempts}: Using ${selectedProvider} (complexity: ${queryComplexity})`);
+        const selectedProvider = this.providerManager.selectOptimalProvider('low', false);
+        console.log(`🎯 Attempt ${attempts}: Using ${selectedProvider}`);
 
         // Record provider usage for rate limiting
         this.providerManager.recordProviderUsage(selectedProvider);
 
         // Perform analysis with selected provider
         console.log(`🚀 Starting analysis with ${selectedProvider}...`);
-        const rawResponse = await this.performProviderAnalysis(selectedProvider, query, isFollowUp, previousContext);
+        const rawResponse = await this.performProviderAnalysis(selectedProvider, query);
         console.log(`📝 Raw response received from ${selectedProvider}: ${typeof rawResponse} (${rawResponse ? rawResponse.length : 0} chars)`);
-
-        // Parse and validate response
-        console.log(`🔍 Parsing response from ${selectedProvider}...`);
-        const parseResult = await this.responseParser.parseResponse(rawResponse, selectedProvider, query);
-        console.log(`📊 Parse result: success=${parseResult.success}, quality=${parseResult.qualityScore || 'N/A'}`);
 
         const responseTime = Date.now() - startTime;
 
-        if (parseResult.success) {
-          // Record successful response
-          this.providerManager.recordProviderResponse(selectedProvider, true, responseTime, parseResult.qualityScore);
+        // Simple response structure
+        const result = {
+          response: rawResponse || `Thank you for your query: "${query}". The system has been cleaned and is ready for the new implementation.`
+        };
 
-          // Cache the result
-          this.saveToProviderCache(cacheKey, parseResult.data);
+        // Record successful response
+        this.providerManager.recordProviderResponse(selectedProvider, true, responseTime, 1);
 
-          // Track analytics
-          await this.trackAnalytics(query, selectedProvider, responseTime, parseResult.data.totalSources || 0, parseResult.qualityScore);
+        // Cache the result
+        this.saveToProviderCache(cacheKey, result);
 
-          console.log(`✅ Analysis completed successfully with ${selectedProvider} (${responseTime}ms, quality: ${parseResult.qualityScore})`);
-          return parseResult.data;
-        } else {
-          // Record as failure and continue to next attempt
-          this.providerManager.recordProviderResponse(selectedProvider, false, responseTime, 0);
-          console.warn(`⚠️ Provider ${selectedProvider} failed to generate valid response, trying next provider...`);
+        // Track analytics
+        await this.trackAnalytics(query, selectedProvider, responseTime, 0, 1);
 
-          if (attempts === maxAttempts) {
-            throw new Error(`All AI providers failed to generate valid responses after ${attempts} attempts`);
-          }
-        }
+        console.log(`✅ Analysis completed successfully with ${selectedProvider} (${responseTime}ms)`);
+        return result;
 
       } catch (error) {
         console.warn(`⚠️ Attempt ${attempts} failed: ${error.message}`);
@@ -420,9 +341,8 @@ Ensure exactly 2 articles with priority-based classification.`;
   }
 
   // Generate cache key for provider-level caching
-  generateProviderCacheKey(query, isFollowUp, previousContext) {
-    const contextHash = previousContext ? crypto.createHash('md5').update(JSON.stringify(previousContext)).digest('hex').substring(0, 8) : 'none';
-    return `${this.generateQueryHash(query)}_${isFollowUp}_${contextHash}`;
+  generateProviderCacheKey(query) {
+    return this.generateQueryHash(query);
   }
 
   // Get from provider-level cache
@@ -454,14 +374,14 @@ Ensure exactly 2 articles with priority-based classification.`;
   }
 
   // Perform analysis with specific provider
-  async performProviderAnalysis(provider, query, isFollowUp, previousContext) {
+  async performProviderAnalysis(provider, query) {
     switch (provider) {
       case 'groq':
-        return await this.analyzeWithGroq(query, isFollowUp, previousContext);
+        return await this.analyzeWithGroq(query);
       case 'gemini':
-        return await this.analyzeWithGemini(query, isFollowUp, previousContext);
+        return await this.analyzeWithGemini(query);
       case 'openai':
-        return await this.analyzeWithOpenAI(query, isFollowUp, previousContext);
+        return await this.analyzeWithOpenAI(query);
       default:
         throw new Error(`Unknown provider: ${provider}`);
     }
@@ -484,7 +404,7 @@ Ensure exactly 2 articles with priority-based classification.`;
 
   // This method has been removed - we now require real AI responses only
 
-  // Enhanced analytics tracking with quality scores and provider details
+  // Simplified analytics tracking
   async trackAnalytics(query, aiProvider, responseTime, sourcesFound, qualityScore = null) {
     try {
       const analyticsData = {
@@ -493,7 +413,6 @@ Ensure exactly 2 articles with priority-based classification.`;
         response_time_ms: responseTime,
         sources_found: sourcesFound,
         user_rating: null,
-        follow_up_count: 0,
         created_at: new Date().toISOString()
       };
 

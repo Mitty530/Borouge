@@ -187,3 +187,64 @@ coverage/
 .directory
 .Trash-*
 .nfs*
+
+# ESG Intelligence Platform Specific
+# AI Provider cache directories
+.groq_cache/
+.gemini_cache/
+.openai_cache/
+
+# ESG data and reports
+esg_reports/
+intelligence_cache/
+analytics_data/
+
+# Supabase local development
+.supabase/
+supabase/.branches
+supabase/.temp
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yml
+docker-compose.override.yml
+
+# Deployment
+.vercel/
+.netlify/
+
+# Performance monitoring
+.clinic/
+clinic.json
+
+# Memory dumps
+*.heapsnapshot
+
+# Certificate files
+*.crt
+*.cert
+*.ca-bundle
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Archive files
+*.zip
+*.rar
+*.7z
+
+# AI models (if any)
+*.model
+*.pkl
+*.h5
+*.pb
+
+# Local configuration overrides
+config.local.js
+config.local.json
+
+# Package manager alternatives
+pnpm-lock.yaml
+.pnpm-debug.log*

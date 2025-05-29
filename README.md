@@ -1,205 +1,180 @@
-# Borouge ESG Intelligence Platform
+# 🏢 Borouge ESG Intelligence Platform
 
-A comprehensive ESG (Environmental, Social, and Governance) intelligence platform specifically designed for Borouge, the UAE-based petrochemical producer. This platform provides AI-powered ESG analysis, regulatory compliance insights, and strategic business intelligence.
+A comprehensive, production-ready ESG intelligence platform for Borouge's strategic business intelligence needs.
 
-## 🚀 Features
+## 📋 Project Overview
 
-### **Advanced AI Integration**
-- **Multi-Provider Strategy**: Groq (primary), Gemini (secondary), OpenAI (backup)
-- **Intelligent Provider Selection**: Query complexity-based provider optimization
-- **Real-time Health Monitoring**: Circuit breaker patterns and automatic failover
-- **Quality Assurance**: Response quality scoring and validation (93-98.5 scores)
+This platform provides AI-powered ESG intelligence analysis specifically tailored for Borouge's petrochemical operations, regulatory compliance, and competitive positioning in global markets.
 
-### **ESG Intelligence Capabilities**
-- **Regulatory Compliance Analysis**: EU CBAM, plastic directives, carbon regulations
-- **Competitive Intelligence**: SABIC, Dow, and industry benchmarking
-- **Financial Impact Assessment**: Short-term, long-term, and investment analysis
-- **Strategic Recommendations**: Actionable insights for Borouge operations
+### 🎯 Key Features
+- **Multi-AI Engine Support**: Groq, Gemini, and OpenAI integration with intelligent failover
+- **Advanced Caching**: Supabase-powered caching for optimal performance
+- **Real-time Analytics**: Query tracking and performance monitoring
+- **ESG-Focused Intelligence**: Specialized for petrochemical industry ESG requirements
+- **Production-Ready**: Comprehensive error handling, rate limiting, and monitoring
 
-### **Enterprise-Grade Performance**
-- **Multi-Level Caching**: 24-hour query cache + 5-minute provider cache
-- **Response Times**: <1.5s cached, <4s new queries
-- **High Availability**: 99%+ uptime with robust error handling
-- **Real-time Monitoring**: Comprehensive analytics and performance tracking
+## 🏗️ Project Structure
 
-## 🏗️ Architecture
-
-### **Backend (Node.js/Express)**
 ```
-backend/
-├── services/
-│   ├── aiService.js              # Multi-provider AI integration
-│   ├── aiProviderManager.js      # Provider health & selection
-│   ├── responseParser.js         # JSON validation & repair
-│   ├── esgIntelligenceService.js # Main ESG processing
-│   └── cacheService.js           # Multi-level caching
-├── server.js                     # Express server
-└── .env                          # Environment configuration
+├── Bo_Prompt                    # 🎯 Master ESG Intelligence Prompt (CRITICAL - DO NOT MODIFY)
+├── src/                        # ⚛️  React Frontend Application
+│   ├── components/             # 🧩 Reusable UI Components
+│   ├── App.js                  # 🏠 Main Application Component
+│   └── index.js                # 🚀 Application Entry Point
+├── backend/                    # 🔧 Node.js Backend Services
+│   ├── services/               # 🤖 Core Business Logic Services
+│   │   ├── esgIntelligenceService.js  # 🧠 Main ESG Processing
+│   │   ├── aiService.js               # 🤖 AI Provider Management
+│   │   ├── cacheService.js            # 💾 Caching Layer
+│   │   └── responseParser.js          # 📝 Response Processing
+│   ├── server.js               # 🌐 Express Server Configuration
+│   └── package.json            # 📦 Backend Dependencies
+├── public/                     # 🌐 Static Assets
+└── package.json                # 📦 Frontend Dependencies
 ```
 
-### **Frontend (React)**
-```
-borouge-esg-frontend/
-├── src/
-│   ├── components/
-│   │   ├── ConversationView.js   # Main chat interface
-│   │   ├── ArticleView.js        # Article display
-│   │   └── SuggestionChips.js    # Query suggestions
-│   └── App.js                    # Main application
-└── public/                       # Static assets
-```
+## 🚀 Quick Start
 
-## 🛠️ Installation & Setup
-
-### **Prerequisites**
-- Node.js 18+ and npm
+### Prerequisites
+- Node.js 18+
+- npm or yarn
 - Supabase account and project
 - AI API keys (Groq, Gemini, OpenAI)
 
-### **Backend Setup**
+### Environment Setup
+
+1. **Clone and Install Dependencies**
 ```bash
+# Install frontend dependencies
+npm install
+
+# Install backend dependencies
 cd backend
 npm install
-cp .env.example .env
-# Configure your API keys in .env
-npm start
+cd ..
 ```
 
-### **Frontend Setup**
-```bash
-cd borouge-esg-frontend
-npm install
-npm start
-```
-
-### **Environment Configuration**
+2. **Environment Configuration**
+Create `.env` file in the backend directory:
 ```env
 # Supabase Configuration
-SUPABASE_URL=your_supabase_url
-SUPABASE_ANON_KEY=your_supabase_key
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-# AI Provider API Keys
-GROQ_API_KEY=your_groq_key
-GEMINI_API_KEY=your_gemini_key
-OPENAI_API_KEY=your_openai_key
+# AI Engine Configuration
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama3-8b-8192
+GEMINI_API_KEY=your_gemini_api_key
+OPENAI_API_KEY=your_openai_api_key
 
-# Server Configuration
-PORT=3001
+# Optional Configuration
 NODE_ENV=development
+PORT=3001
+CACHE_TTL_HOURS=24
 ```
 
-## 📊 API Endpoints
+### 🏃‍♂️ Running the Application
 
-### **ESG Intelligence**
-- `POST /api/esg-intelligence` - Main ESG analysis endpoint
-- `GET /api/suggested-queries` - Popular ESG query suggestions
-- `GET /api/performance-report` - System performance metrics
-
-### **AI Provider Monitoring**
-- `GET /api/ai-providers/health` - Provider health status
-- `GET /api/ai-providers/stats` - Comprehensive provider statistics
-- `GET /api/ai-providers/recommendations` - Optimization recommendations
-
-### **System Monitoring**
-- `GET /api/status` - System status and health
-- `GET /health` - Basic health check
-
-## 🎯 Usage Examples
-
-### **ESG Intelligence Query**
+**Development Mode:**
 ```bash
-curl -X POST http://localhost:3001/api/esg-intelligence \
-  -H "Content-Type: application/json" \
-  -d '{"query": "EU CBAM carbon border adjustment impact on Borouge"}'
+# Terminal 1: Start Backend Server
+cd backend
+npm run dev
+
+# Terminal 2: Start Frontend Application
+npm start
 ```
 
-### **Follow-up Query**
+**Production Mode:**
 ```bash
-curl -X POST http://localhost:3001/api/esg-intelligence \
-  -H "Content-Type: application/json" \
-  -d '{
-    "query": "What are the specific compliance deadlines?",
-    "followUp": true,
-    "previousContext": {
-      "originalQuery": "EU CBAM impact",
-      "riskLevel": "HIGH"
-    }
-  }'
+# Backend
+cd backend
+npm start
+
+# Frontend (build and serve)
+npm run build
+# Serve the build folder with your preferred static server
 ```
 
-## 📈 Performance Metrics
+## 🔧 API Endpoints
 
-### **Response Times**
-- **Cached Queries**: <1.5 seconds
-- **New Queries**: 2-4 seconds
-- **Provider Selection**: <50ms
+### Core Endpoints
+- `POST /api/esg-intelligence` - Main ESG query processing
+- `GET /health` - Comprehensive health check
+- `GET /api/status` - API status and statistics
+- `GET /api/suggested-queries` - Popular query suggestions
 
-### **Quality Scores**
-- **Groq**: 93-95 (fast, reliable)
-- **Gemini**: 95-98.5 (high quality)
-- **OpenAI**: 95-100 (premium quality)
+### Monitoring Endpoints
+- `GET /api/ai-providers/health` - AI engine health status
+- `GET /api/ai-providers/stats` - Provider performance statistics
+- `GET /api/performance-report` - System performance analytics
 
-### **Availability**
-- **System Uptime**: 99%+
-- **Cache Hit Rate**: 70-80%
-- **Provider Health**: Real-time monitoring
+## 🧠 ESG Intelligence Features
 
-## 🔧 Development
+### Specialized Analysis Areas
+- **Regulatory Intelligence**: EU CBAM, REACH, packaging regulations
+- **Market Intelligence**: Petrochemical trends, competitive analysis
+- **Financial Impact**: Revenue quantification, CAPEX/OPEX analysis
+- **Competitive Positioning**: SABIC, Dow, ExxonMobil benchmarking
+- **Strategic Recommendations**: Immediate actions and long-term positioning
 
-### **Phase 1: API Contract Alignment** ✅
-- Response format standardization
-- Priority-based article classification
-- Financial impact assessment structure
+### AI Engine Strategy
+- **Primary**: Groq (fast, cost-effective)
+- **Secondary**: Gemini (comprehensive analysis)
+- **Fallback**: OpenAI (emergency backup)
+- **Intelligent Failover**: Automatic switching based on availability and performance
 
-### **Phase 2: Two-Stage Interaction Flow** ✅
-- Article list view support
-- Article detail view with follow-ups
-- Analytics tracking and copy functionality
+## 📊 Performance & Monitoring
 
-### **Phase 3: Advanced AI Integration** ✅
-- Intelligent provider selection
-- Circuit breaker patterns
-- Response quality scoring
-- Cost optimization
+### Caching Strategy
+- **Cache TTL**: 24 hours (configurable)
+- **Cache Hit Rate**: Tracked and optimized
+- **Intelligent Invalidation**: Based on query similarity and freshness
 
-## 🚀 Deployment
+### Analytics Tracking
+- Query performance metrics
+- AI provider performance
+- User interaction patterns
+- Error tracking and alerting
 
-### **Production Checklist**
-- [ ] Environment variables configured
-- [ ] Database migrations applied
-- [ ] SSL certificates installed
-- [ ] Monitoring alerts configured
-- [ ] Backup strategy implemented
+## 🔒 Security Features
 
-### **Scaling Considerations**
-- Horizontal scaling with load balancers
-- Database read replicas for analytics
-- CDN for static assets
-- Redis for distributed caching
+- **Rate Limiting**: 100 requests/minute per IP
+- **CORS Protection**: Configured for production domains
+- **Input Validation**: Query sanitization and length limits
+- **Error Handling**: Comprehensive error tracking without data leakage
+- **Security Headers**: XSS protection, content type validation
 
-## 📝 License
+## 🛠️ Development Guidelines
 
-This project is proprietary software developed for Borouge operations.
+### Code Quality
+- **ESLint**: Configured for React and Node.js
+- **Error Handling**: Comprehensive async/await error handling
+- **Logging**: Structured logging with timestamps and request tracking
+- **Testing**: Ready for Jest/React Testing Library integration
+
+### Deployment Considerations
+- **Environment Variables**: All sensitive data externalized
+- **Health Checks**: Comprehensive monitoring endpoints
+- **Graceful Shutdown**: SIGTERM/SIGINT handling
+- **Process Management**: Ready for PM2 or Docker deployment
+
+## 📈 Current Status
+
+✅ **Production-Ready Architecture**
+✅ **Multi-AI Engine Integration**
+✅ **Advanced Caching System**
+✅ **Comprehensive Error Handling**
+✅ **Real-time Performance Monitoring**
+✅ **ESG-Specialized Intelligence**
+✅ **Security Hardened**
+✅ **Scalable Design**
 
 ## 🤝 Contributing
 
-This is a private repository for Borouge ESG Intelligence Platform development.
+This platform is specifically designed for Borouge's ESG intelligence needs. All modifications should align with the master prompt requirements and maintain the specialized focus on petrochemical industry ESG analysis.
 
----
+## 📞 Support
 
-**Built with ❤️ for Borouge's ESG Intelligence needs**
-
-## Frontend Architecture Details
-
-### **React Components**
-- **ConversationView**: Main intelligence interface with article-based responses
-- **Article System**: Priority-based display (Critical Regulatory Compliance → High Financial Impact)
-- **Search Interface**: Intelligent query processing with suggestion chips
-- **Responsive Design**: Optimized for desktop and mobile devices
-
-### **Technology Stack**
-- **Frontend**: React with modern hooks and functional components
-- **Styling**: CSS modules with responsive design
-- **Animations**: Framer Motion for smooth transitions
-- **Icons**: Lucide React for consistent iconography
-- **State Management**: React hooks (useState, useEffect)
+For technical issues or feature requests, refer to the comprehensive logging and monitoring systems built into the platform.
