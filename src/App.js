@@ -127,6 +127,8 @@ function App() {
           Start new search
         </motion.button>
 
+
+
         {/* Navigation */}
         <motion.div
           className="nav-section"

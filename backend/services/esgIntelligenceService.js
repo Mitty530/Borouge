@@ -3,6 +3,10 @@
 
 const AIService = require('./aiService');
 const CacheService = require('./cacheService');
+const NewsService = require('./newsService');
+const QueryEnhancementService = require('./queryEnhancementService');
+const ArticleAnalysisService = require('./articleAnalysisService');
+const ExecutiveSummaryService = require('./executiveSummaryService');
 
 class ESGIntelligenceService {
   constructor(config, supabase) {
@@ -10,6 +14,10 @@ class ESGIntelligenceService {
     this.supabase = supabase;
     this.aiService = new AIService(config, supabase);
     this.cacheService = new CacheService(supabase, config);
+    this.newsService = new NewsService(config, supabase);
+    this.queryEnhancementService = new QueryEnhancementService(config, supabase);
+    this.articleAnalysisService = new ArticleAnalysisService(config, supabase, this.aiService);
+    this.executiveSummaryService = new ExecutiveSummaryService(config, supabase, this.aiService);
   }
 
   // Main ESG intelligence processing endpoint
@@ -45,6 +53,167 @@ class ESGIntelligenceService {
 
     } catch (error) {
       console.error('ESG Intelligence processing error:', error);
+
+      // Track error analytics
+      await this.trackErrorAnalytics(query, error, Date.now() - startTime);
+
+      throw error;
+    }
+  }
+
+  // NEW: ESG Smart Search with Multi-Source News Intelligence
+  async processSmartSearchWithMultiSource(query) {
+    const startTime = Date.now();
+
+    try {
+      console.log(`🔍 Processing multi-source smart search: "${query}"`);
+
+      // Step 1: Enhance query with Borouge context
+      const queryEnhancements = this.queryEnhancementService.enhanceQuery(query);
+      console.log(`📝 Query enhanced with ${queryEnhancements.enhancedKeywords?.length || 0} keywords`);
+
+      // Step 2: Search multiple news sources
+      const newsResults = await this.newsService.searchMultipleSources(query, {
+        maxResults: 30,
+        language: 'en'
+      });
+
+      if (!newsResults.success) {
+        throw new Error(`Multi-source news search failed: ${newsResults.error}`);
+      }
+
+      console.log(`📰 Multi-source search found ${newsResults.articles.length} articles from ${newsResults.searchStrategies?.length || 0} strategies`);
+
+      // Step 3: Analyze articles with AI
+      const analyzedArticles = await this.articleAnalysisService.analyzeArticlesWithAI(
+        newsResults.articles,
+        queryEnhancements
+      );
+
+      console.log(`🤖 AI analysis completed: ${analyzedArticles.length} articles analyzed`);
+
+      // Step 4: Generate comprehensive executive summary
+      console.log(`📊 Generating comprehensive executive summary...`);
+      const executiveSummary = await this.executiveSummaryService.generateComprehensiveExecutiveSummary(
+        query,
+        analyzedArticles,
+        queryEnhancements
+      );
+
+      // Step 5: Structure enhanced smart search response
+      const response = this.articleAnalysisService.structureSmartSearchResponse(
+        query,
+        queryEnhancements,
+        newsResults,
+        analyzedArticles,
+        startTime
+      );
+
+      // Step 6: Integrate comprehensive executive summary
+      response.comprehensiveExecutiveSummary = executiveSummary;
+      response.analysisDepth = 'comprehensive';
+      response.strategicIntelligence = true;
+
+      // Step 7: Cache the enhanced result
+      const cacheKey = `multi_search_comprehensive_${this.articleAnalysisService.generateQueryHash(query)}`;
+      await this.cacheService.saveToCache(cacheKey, response);
+
+      const processingTime = Date.now() - startTime;
+      console.log(`✅ Multi-source smart search with comprehensive analysis completed in ${processingTime}ms`);
+
+      return response;
+
+    } catch (error) {
+      console.error('❌ Multi-source smart search failed:', error);
+
+      // Fallback to regular smart search
+      console.log('🔄 Falling back to regular smart search...');
+      return await this.processSmartSearch(query);
+    }
+  }
+
+  // NEW: ESG Smart Search with News Intelligence
+  async processSmartSearch(query) {
+    const startTime = Date.now();
+
+    try {
+      console.log(`🔍 Starting ESG Smart Search for: "${query}"`);
+
+      // Step 1: Enhance query using Bo_Prompt context
+      const queryEnhancements = this.queryEnhancementService.enhanceQuery(query);
+      console.log(`🎯 Enhanced query with ${queryEnhancements.enhancedKeywords.length} keywords`);
+
+      // Step 2: Create search session for tracking
+      const searchSession = await this.queryEnhancementService.createSearchSession(query, queryEnhancements);
+
+      // Step 3: Check cache for similar searches
+      const cacheKey = `smart_search_${this.articleAnalysisService.generateQueryHash(query)}`;
+      const cachedResult = await this.cacheService.checkCache(cacheKey);
+
+      if (cachedResult) {
+        console.log('✅ Smart search cache HIT');
+        return cachedResult;
+      }
+
+      // Step 4: Search news using enhanced keywords
+      const newsResults = await this.newsService.searchNews(query, {
+        maxResults: 20,
+        language: 'en',
+        from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Last 7 days
+      });
+
+      if (!newsResults.success) {
+        throw new Error(`News search failed: ${newsResults.error}`);
+      }
+
+      // Step 5: Analyze articles with AI for relevance and impact
+      const analyzedArticles = await this.articleAnalysisService.analyzeArticlesWithAI(newsResults.articles, queryEnhancements);
+
+      // Step 5.5: Generate comprehensive executive summary
+      console.log(`📊 Generating comprehensive executive summary for regular smart search...`);
+      const executiveSummary = await this.executiveSummaryService.generateComprehensiveExecutiveSummary(
+        query,
+        analyzedArticles,
+        queryEnhancements
+      );
+
+      // Step 6: Structure smart search response
+      const response = this.articleAnalysisService.structureSmartSearchResponse(
+        query,
+        queryEnhancements,
+        newsResults,
+        analyzedArticles,
+        startTime
+      );
+
+      // Step 6.5: Integrate comprehensive executive summary
+      response.comprehensiveExecutiveSummary = executiveSummary;
+      response.analysisDepth = 'comprehensive';
+      response.strategicIntelligence = true;
+
+      // Step 7: Update search session with results
+      if (searchSession) {
+        await this.queryEnhancementService.updateSearchSession(searchSession.id, {
+          articlesFound: newsResults.articlesFound,
+          relevantArticles: analyzedArticles.filter(a => a.relevance_score >= 70).length,
+          highImpactCount: analyzedArticles.filter(a => a.impact_level === 'HIGH').length,
+          mediumImpactCount: analyzedArticles.filter(a => a.impact_level === 'MEDIUM').length,
+          lowImpactCount: analyzedArticles.filter(a => a.impact_level === 'LOW').length,
+          opportunityCount: analyzedArticles.filter(a => a.impact_level === 'OPPORTUNITY').length,
+          processingTime: Date.now() - startTime,
+          apiCallsMade: 1,
+          cacheHits: 0
+        });
+      }
+
+      // Step 8: Cache the result
+      await this.cacheService.saveToCache(cacheKey, response);
+
+      console.log(`✅ Smart search completed in ${Date.now() - startTime}ms`);
+      return response;
+
+    } catch (error) {
+      console.error('❌ Smart search error:', error.message);
 
       // Track error analytics
       await this.trackErrorAnalytics(query, error, Date.now() - startTime);

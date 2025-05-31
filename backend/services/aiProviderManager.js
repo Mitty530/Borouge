@@ -24,7 +24,7 @@ class AIProviderManager extends EventEmitter {
 
   // Initialize provider health tracking
   initializeProviders() {
-    const providers = ['groq', 'gemini', 'openai'];
+    const providers = ['gemini', 'groq', 'openai']; // Prioritize Gemini first
 
     providers.forEach(provider => {
       this.providerHealth.set(provider, {
@@ -71,9 +71,9 @@ class AIProviderManager extends EventEmitter {
   // Get provider cost per request (for optimization)
   getProviderCost(provider) {
     const costs = {
-      groq: 0.0001, // Free tier - minimal cost
-      gemini: 0.0002, // Free tier - minimal cost
-      openai: 0.002 // Paid tier - preserve budget
+      gemini: 0.0001, // Free tier - prioritize Gemini
+      groq: 0.0002, // Free tier - secondary choice
+      openai: 0.01 // Paid tier - last resort only
     };
     return costs[provider] || 0;
   }
@@ -123,11 +123,20 @@ class AIProviderManager extends EventEmitter {
         score += 5; // Bonus for free tiers
       }
 
-      // Complexity-based provider preference
-      if (queryComplexity === 'high' && provider === 'openai') {
-        score += 10; // OpenAI bonus for complex queries
+      // Strong preference for Gemini
+      if (provider === 'gemini') {
+        score += 20; // Strong Gemini preference
+      } else if (provider === 'groq') {
+        score += 5; // Secondary choice
+      } else if (provider === 'openai') {
+        score -= 10; // Strong penalty for OpenAI - use only as last resort
+      }
+
+      // Additional complexity-based adjustments
+      if (queryComplexity === 'high' && provider === 'gemini') {
+        score += 5; // Extra bonus for complex queries with Gemini
       } else if (queryComplexity === 'low' && provider === 'groq') {
-        score += 10; // Groq bonus for simple queries
+        score += 3; // Small bonus for simple queries with Groq
       }
 
       return { provider, score, health, metrics };
@@ -143,7 +152,7 @@ class AIProviderManager extends EventEmitter {
 
   // Get available providers (not in circuit breaker open state)
   getAvailableProviders() {
-    const providers = ['groq', 'gemini', 'openai'];
+    const providers = ['gemini', 'groq', 'openai']; // Prioritize Gemini first
     return providers.filter(provider => {
       const circuitBreaker = this.circuitBreakers.get(provider);
       const health = this.providerHealth.get(provider);

@@ -18,10 +18,10 @@ class CacheService {
   async checkCache(query) {
     const queryHash = this.generateQueryHash(query);
     const startTime = Date.now();
-    
+
     try {
       console.log(`🔍 Checking cache for query hash: ${queryHash.substring(0, 16)}...`);
-      
+
       const { data, error } = await this.supabase
         .from('esg_intelligence_cache')
         .select('*')
@@ -38,22 +38,22 @@ class CacheService {
       if (data && data.length > 0) {
         const cacheEntry = data[0];
         const checkTime = Date.now() - startTime;
-        
+
         console.log(`✅ Cache HIT found (${checkTime}ms) - Entry from ${cacheEntry.created_at}`);
-        
+
         // Update hit count
         await this.updateHitCount(cacheEntry.id);
-        
+
         // Update popular query tracking
         await this.updatePopularQuery(query);
-        
+
         return cacheEntry.response;
       }
 
       const checkTime = Date.now() - startTime;
       console.log(`❌ Cache MISS (${checkTime}ms) - No valid cache entry found`);
       return null;
-      
+
     } catch (error) {
       console.error('Cache check error:', error);
       return null;
@@ -64,13 +64,13 @@ class CacheService {
   async saveToCache(query, response) {
     const queryHash = this.generateQueryHash(query);
     const startTime = Date.now();
-    
+
     try {
       console.log(`💾 Saving to cache: ${queryHash.substring(0, 16)}...`);
-      
+
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + this.config.cache.ttlHours);
-      
+
       const { data, error } = await this.supabase
         .from('esg_intelligence_cache')
         .insert({
@@ -90,12 +90,12 @@ class CacheService {
 
       const saveTime = Date.now() - startTime;
       console.log(`✅ Cache saved successfully (${saveTime}ms) - Expires: ${expiresAt.toISOString()}`);
-      
+
       // Update popular query tracking
       await this.updatePopularQuery(query);
-      
+
       return true;
-      
+
     } catch (error) {
       console.error('Cache save error:', error);
       return false;
@@ -105,10 +105,23 @@ class CacheService {
   // Update hit count for cache analytics
   async updateHitCount(cacheId) {
     try {
+      // First get the current hit count
+      const { data: currentData, error: fetchError } = await this.supabase
+        .from('esg_intelligence_cache')
+        .select('hit_count')
+        .eq('id', cacheId)
+        .single();
+
+      if (fetchError) {
+        console.error('Hit count fetch error:', fetchError);
+        return;
+      }
+
+      // Update with incremented value
       const { error } = await this.supabase
         .from('esg_intelligence_cache')
-        .update({ 
-          hit_count: this.supabase.sql`hit_count + 1`
+        .update({
+          hit_count: (currentData.hit_count || 0) + 1
         })
         .eq('id', cacheId);
 
@@ -166,7 +179,7 @@ class CacheService {
   async cleanupExpiredEntries() {
     try {
       console.log('🧹 Cleaning up expired cache entries...');
-      
+
       const { data, error } = await this.supabase
         .from('esg_intelligence_cache')
         .delete()
@@ -215,7 +228,7 @@ class CacheService {
   async invalidateByPattern(pattern) {
     try {
       console.log(`🗑️ Invalidating cache entries matching pattern: ${pattern}`);
-      
+
       const { data, error } = await this.supabase
         .from('esg_intelligence_cache')
         .delete()
@@ -263,7 +276,7 @@ class CacheService {
     try {
       const stats = await this.getCacheStats();
       const hitRate = await this.getCacheHitRate(1); // Last hour
-      
+
       return {
         status: 'healthy',
         totalEntries: stats.totalEntries,

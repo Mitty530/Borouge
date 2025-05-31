@@ -48,6 +48,14 @@ const config = {
     rateLimit: parseInt(process.env.NEWS_RATE_LIMIT) || 1000
   },
 
+  // GNews API Configuration
+  gnews: {
+    apiKey: process.env.GNEWS_API_KEY,
+    baseUrl: process.env.GNEWS_BASE_URL || "https://gnews.io/api/v4",
+    rateLimit: parseInt(process.env.GNEWS_RATE_LIMIT) || 100,
+    dailyLimit: parseInt(process.env.GNEWS_DAILY_LIMIT) || 100
+  },
+
   // Cache Configuration
   cache: {
     ttlHours: parseInt(process.env.CACHE_TTL_HOURS) || 24,
@@ -60,7 +68,8 @@ const requiredEnvVars = [
   'VITE_SUPABASE_URL',
   'VITE_SUPABASE_ANON_KEY',
   'GROQ_API_KEY',
-  'GEMINI_API_KEY'
+  'GEMINI_API_KEY',
+  'GNEWS_API_KEY'
 ];
 
 const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
@@ -287,6 +296,11 @@ const notFoundHandler = (req, res) => {
         'GET /health',
         'GET /api/suggested-queries',
         'POST /api/esg-intelligence',
+        'POST /api/esg-smart-search',
+        'GET /api/news/health',
+        'GET /api/news/recent',
+        'GET /api/analytics/search',
+        'GET /api/analytics/articles',
         'GET /api/performance-report'
       ]
     }
@@ -381,8 +395,13 @@ app.get('/api/status', asyncHandler(async (req, res) => {
       endpoints: {
         health: '/health',
         esgIntelligence: '/api/esg-intelligence',
+        esgSmartSearch: '/api/esg-smart-search',
         suggestedQueries: '/api/suggested-queries',
-        performanceReport: '/api/performance-report'
+        performanceReport: '/api/performance-report',
+        newsHealth: '/api/news/health',
+        recentArticles: '/api/news/recent',
+        searchAnalytics: '/api/analytics/search',
+        articleAnalytics: '/api/analytics/articles'
       }
     },
     statistics: {
@@ -474,6 +493,130 @@ app.get('/api/performance-report', asyncHandler(async (req, res) => {
   res.json({
     success: true,
     report: data,
+    timestamp: new Date().toISOString()
+  });
+}));
+
+// ============================================================================
+// ESG SMART SEARCH ENDPOINTS
+// ============================================================================
+
+// NEW: ESG Smart Search endpoint with news intelligence
+app.post('/api/esg-smart-search', asyncHandler(async (req, res) => {
+  const { query } = req.body;
+
+  // Validate request
+  if (!query || typeof query !== 'string' || query.trim().length === 0) {
+    throw new APIError('Query is required and must be a non-empty string', 400, 'INVALID_QUERY');
+  }
+
+  if (query.length > 1000) {
+    throw new APIError('Query too long. Maximum 1000 characters allowed', 400, 'QUERY_TOO_LONG');
+  }
+
+  console.log(`🔍 ESG Smart Search Request: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}"`);
+
+  try {
+    // Process the smart search query with multi-source news search
+    const result = await esgService.processSmartSearchWithMultiSource(query);
+
+    // Add request metadata
+    result.requestId = req.headers['x-request-id'] || 'unknown';
+    result.processingTime = Date.now() - req.startTime;
+
+    console.log(`✅ Smart Search Response processed (${result.processingTime}ms)`);
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('Smart Search processing failed:', error);
+
+    // Provide user-friendly error messages
+    if (error.message.includes('quota exceeded')) {
+      throw new APIError('News API daily quota exceeded. Please try again tomorrow.', 429, 'QUOTA_EXCEEDED');
+    } else if (error.message.includes('News search failed')) {
+      throw new APIError('News search service temporarily unavailable. Please try again later.', 503, 'NEWS_SERVICE_UNAVAILABLE');
+    } else {
+      throw new APIError('Failed to process smart search query. Please try again.', 500, 'PROCESSING_ERROR');
+    }
+  }
+}));
+
+// NEW: News service health endpoint
+app.get('/api/news/health', asyncHandler(async (req, res) => {
+  const healthStatus = await esgService.newsService.getHealthStatus();
+
+  res.json({
+    success: true,
+    ...healthStatus,
+    timestamp: new Date().toISOString()
+  });
+}));
+
+// NEW: Recent articles endpoint
+app.get('/api/news/recent', asyncHandler(async (req, res) => {
+  const { limit = 10, impact_level } = req.query;
+
+  // Validate parameters
+  const parsedLimit = parseInt(limit);
+  if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 50) {
+    throw new APIError('Limit must be a number between 1 and 50', 400, 'INVALID_LIMIT');
+  }
+
+  if (impact_level && !['HIGH', 'MEDIUM', 'LOW', 'OPPORTUNITY'].includes(impact_level)) {
+    throw new APIError('Impact level must be HIGH, MEDIUM, LOW, or OPPORTUNITY', 400, 'INVALID_IMPACT_LEVEL');
+  }
+
+  const articles = await esgService.newsService.getRecentArticles(parsedLimit, impact_level);
+
+  res.json({
+    success: true,
+    articles: articles,
+    count: articles.length,
+    filters: {
+      limit: parsedLimit,
+      impact_level: impact_level || 'all'
+    },
+    timestamp: new Date().toISOString()
+  });
+}));
+
+// NEW: Search analytics endpoint
+app.get('/api/analytics/search', asyncHandler(async (req, res) => {
+  const { days = 7 } = req.query;
+
+  // Validate parameters
+  const parsedDays = parseInt(days);
+  if (isNaN(parsedDays) || parsedDays < 1 || parsedDays > 30) {
+    throw new APIError('Days must be a number between 1 and 30', 400, 'INVALID_DAYS');
+  }
+
+  const analytics = await esgService.queryEnhancementService.getSearchAnalytics(parsedDays);
+
+  res.json({
+    success: true,
+    analytics: analytics,
+    period: `${parsedDays} days`,
+    timestamp: new Date().toISOString()
+  });
+}));
+
+// NEW: Article analysis analytics endpoint
+app.get('/api/analytics/articles', asyncHandler(async (req, res) => {
+  const { days = 7 } = req.query;
+
+  // Validate parameters
+  const parsedDays = parseInt(days);
+  if (isNaN(parsedDays) || parsedDays < 1 || parsedDays > 30) {
+    throw new APIError('Days must be a number between 1 and 30', 400, 'INVALID_DAYS');
+  }
+
+  const analytics = await esgService.articleAnalysisService.getAnalysisAnalytics(parsedDays);
+
+  res.json({
+    success: true,
+    analytics: analytics,
+    period: `${parsedDays} days`,
     timestamp: new Date().toISOString()
   });
 }));
