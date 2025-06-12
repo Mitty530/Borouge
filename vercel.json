@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
+  "env": {
+    "DISABLE_ESLINT_PLUGIN": "true",
+    "GENERATE_SOURCEMAP": "false"
+  }
+}
