@@ -217,7 +217,7 @@ function App() {
                     onClick={() => selectConversation(conversation)}
                     style={{
                       padding: '12px 16px',
-                      fontSize: '15px',
+                      fontSize: '14px',
                       color: 'var(--text-secondary)',
                       cursor: 'pointer',
                       overflow: 'hidden',

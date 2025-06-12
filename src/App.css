@@ -443,12 +443,12 @@ body {
   }
 
   .clean-title {
-    font-size: 48px;
+    font-size: 24px;
   }
 
   .search-input {
-    padding: 28px 180px 28px 28px;
-    font-size: 18px;
+    padding: 12px 80px 12px 16px;
+    font-size: 16px;
   }
 
   .search-controls {
@@ -484,12 +484,12 @@ body {
 
 @media (max-width: 480px) {
   .clean-title {
-    font-size: 36px;
-    letter-spacing: -0.02em;
+    font-size: 22px;
+    letter-spacing: -0.01em;
   }
 
   .search-input {
-    padding: 24px 160px 24px 24px;
+    padding: 10px 80px 10px 12px;
     font-size: 16px;
   }
 
