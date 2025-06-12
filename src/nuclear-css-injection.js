@@ -1,5 +1,6 @@
 // NUCLEAR CSS INJECTION - RUNTIME STYLE ENFORCEMENT
 // This script injects critical CSS at runtime to override any remaining issues
+/* eslint-disable no-unused-expressions */
 
 export const injectNuclearCSS = () => {
   // Create a style element with maximum priority
@@ -148,7 +149,8 @@ export const injectNuclearCSS = () => {
   setTimeout(() => {
     // Force recalculation of styles
     document.body.style.display = 'none';
-    document.body.offsetHeight; // Trigger reflow
+    // Trigger reflow
+    void document.body.offsetHeight;
     document.body.style.display = '';
     
     // Apply direct style overrides to critical elements
@@ -197,9 +199,12 @@ const observer = new MutationObserver(() => {
   injectNuclearCSS();
 });
 
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
-});
+// Only observe if document.body exists
+if (document.body) {
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
 
 export default injectNuclearCSS;
