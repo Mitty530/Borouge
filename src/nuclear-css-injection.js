@@ -37,18 +37,19 @@ export const injectNuclearCSS = () => {
     .app .main-content .search-container .search-box .search-input,
     .search-container .search-box .search-input {
       font-size: 16px !important;
-      padding: 12px 120px 12px 16px !important;
-      height: 44px !important;
+      padding: 14px 140px 14px 16px !important;
+      height: 48px !important;
       line-height: 1.4 !important;
       box-sizing: border-box !important;
-      min-height: 44px !important;
-      max-height: 44px !important;
+      min-height: 48px !important;
+      max-height: 48px !important;
     }
     
     /* Nuclear container enforcement */
     .search-container {
-      max-width: 560px !important;
-      margin-bottom: 20px !important;
+      max-width: 600px !important;
+      margin: 0 auto 24px auto !important;
+      width: 100% !important;
     }
     
     .main-content {
