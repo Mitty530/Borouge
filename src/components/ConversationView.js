@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import smartSearchService from '../services/smartSearchService';
 import { queryValidationService } from '../services/queryValidationService';
+import { analyticsService } from '../services/analyticsService';
 import './ConversationView.css';
 
 // Ensure loading spinner animation CSS is injected
@@ -93,6 +94,11 @@ const ConversationView = ({ initialQuery, onBack }) => {
     injectSpinnerCSS();
 
     if (initialQuery) {
+      // Track conversation view start
+      analyticsService.trackFeatureUsage('conversation_view', 'start', {
+        query: initialQuery.substring(0, 50)
+      });
+
       // Add initial user message
       const userMessage = {
         id: 1,
@@ -110,11 +116,22 @@ const ConversationView = ({ initialQuery, onBack }) => {
   }, [initialQuery]);
 
   const performSmartSearch = async (query) => {
+    const searchStartTime = Date.now();
+
     try {
+      // Track search start
+      analyticsService.trackFeatureUsage('smart_search', 'start', { query: query.substring(0, 50) });
+
       // Validate query before processing (server-side backup validation)
       const validation = queryValidationService.validateQuery(query);
 
       if (!validation.isValid) {
+        // Track validation error in conversation view
+        analyticsService.trackError('validation_error', validation.message, {
+          context: 'conversation_view',
+          query: query.substring(0, 50)
+        });
+
         const validationErrorResponse = {
           id: 2,
           type: 'assistant',
@@ -130,6 +147,15 @@ const ConversationView = ({ initialQuery, onBack }) => {
       }
 
       const data = await smartSearchService.search(query);
+      const searchDuration = Date.now() - searchStartTime;
+
+      // Track successful search completion
+      analyticsService.trackPerformance('search_time', searchDuration, {
+        query: query.substring(0, 50),
+        resultCount: data?.articles?.length || 0
+      });
+
+      analyticsService.trackResultsInteraction('view', query, data?.articles?.length || 0);
 
       const aiResponse = {
         id: 2,
@@ -142,6 +168,14 @@ const ConversationView = ({ initialQuery, onBack }) => {
       setIsLoading(false);
     } catch (error) {
       console.error('Smart search error:', error);
+
+      // Track search error
+      analyticsService.trackError('search_error', error.message, {
+        context: 'smart_search',
+        query: query.substring(0, 50),
+        duration: Date.now() - searchStartTime
+      });
+
       const errorResponse = {
         id: 2,
         type: 'assistant',

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, Users, Bookmark, Menu, X } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import ConversationView from './components/ConversationView';
 import QueryGuidanceModal from './components/QueryGuidanceModal';
 import { queryValidationService } from './services/queryValidationService';
+import { analyticsService } from './services/analyticsService';
 import { injectNuclearCSS } from './nuclear-css-injection';
 import { autoVerifySizing } from './size-verification';
 import './App.css';
@@ -26,6 +28,13 @@ function App() {
   useEffect(() => {
     injectNuclearCSS();
 
+    // Track page view and session start
+    analyticsService.trackFeatureUsage('app', 'page_view');
+    analyticsService.trackEngagement('page_view', 0, {
+      userAgent: navigator.userAgent,
+      viewport: `${window.innerWidth}x${window.innerHeight}`
+    });
+
     // Re-inject after a short delay to ensure it overrides everything
     const timer = setTimeout(() => {
       injectNuclearCSS();
@@ -33,7 +42,18 @@ function App() {
       autoVerifySizing();
     }, 500);
 
-    return () => clearTimeout(timer);
+    // Track session metrics on page unload
+    const handleBeforeUnload = () => {
+      analyticsService.trackSessionMetrics();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      analyticsService.trackSessionMetrics();
+    };
   }, []);
 
   // ESG-focused suggestion chips for Borouge
@@ -57,11 +77,25 @@ function App() {
     const validation = queryValidationService.validateQuery(query);
 
     if (!validation.isValid) {
+      // Track validation failure
+      analyticsService.trackValidationFailure(query, validation.reason, validation.suggestions);
+      analyticsService.trackModalInteraction('guidance', 'open', {
+        reason: validation.reason,
+        suggestionsCount: validation.suggestions?.length || 0
+      });
+
       // Show guidance modal for invalid queries
       setValidationResult(validation);
       setShowGuidanceModal(true);
       return;
     }
+
+    // Track successful search
+    analyticsService.trackSearch(query, true);
+    analyticsService.trackFeatureUsage('search', 'submit', {
+      queryLength: query.length,
+      relevanceScore: validation.relevanceScore
+    });
 
     // Query is valid, proceed with search
     setActiveQuery(query);
@@ -100,11 +134,24 @@ function App() {
   };
 
   const handleCloseGuidanceModal = () => {
+    // Track modal close
+    analyticsService.trackModalInteraction('guidance', 'close');
+
     setShowGuidanceModal(false);
     setValidationResult(null);
   };
 
   const handleSuggestionClick = (suggestion) => {
+    // Track suggestion click
+    analyticsService.trackSuggestionClick(
+      suggestion,
+      validationResult?.suggestions?.find(cat =>
+        cat.suggestions.includes(suggestion)
+      )?.category || 'unknown',
+      searchQuery
+    );
+    analyticsService.trackModalInteraction('guidance', 'suggestion_click', { suggestion });
+
     setSearchQuery(suggestion);
     setShowGuidanceModal(false);
     setValidationResult(null);
@@ -351,7 +398,14 @@ function App() {
                 <motion.button
                   key={index}
                   className="suggestion-chip"
-                  onClick={() => handleSearch(chip)}
+                  onClick={() => {
+                    // Track suggestion chip click
+                    analyticsService.trackFeatureUsage('suggestion_chip', 'click', {
+                      suggestion: chip,
+                      position: index
+                    });
+                    handleSearch(chip);
+                  }}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.7 + index * 0.05, duration: 0.4 }}
@@ -382,6 +436,9 @@ function App() {
         validationResult={validationResult}
         onSuggestionClick={handleSuggestionClick}
       />
+
+      {/* Vercel Analytics */}
+      <Analytics />
     </div>
   );
 }
