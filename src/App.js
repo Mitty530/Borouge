@@ -5,6 +5,8 @@ import ConversationView from './components/ConversationView';
 import './App.css';
 import './responsive-fixes.css';
 import './vercel-deployment-fixes.css';
+import './professional-normalization.css';
+import './final-size-enforcement.css';
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
