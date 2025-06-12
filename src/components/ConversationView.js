@@ -1,11 +1,38 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft,
-  Loader2
+  ArrowLeft
 } from 'lucide-react';
 import smartSearchService from '../services/smartSearchService';
+import { queryValidationService } from '../services/queryValidationService';
 import './ConversationView.css';
+
+// Ensure loading spinner animation CSS is injected
+const injectSpinnerCSS = () => {
+  const existingStyle = document.getElementById('spinner-animation-css');
+  if (!existingStyle) {
+    const style = document.createElement('style');
+    style.id = 'spinner-animation-css';
+    style.textContent = `
+      .loading-spinner {
+        animation: spin 1s linear infinite !important;
+        transform-origin: center center !important;
+        animation-play-state: running !important;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg) !important; }
+        100% { transform: rotate(360deg) !important; }
+      }
+
+      @-webkit-keyframes spin {
+        0% { -webkit-transform: rotate(0deg) !important; }
+        100% { -webkit-transform: rotate(360deg) !important; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+};
 
 // Helper function to format article dates
 const formatArticleDate = (dateString) => {
@@ -62,6 +89,9 @@ const ConversationView = ({ initialQuery, onBack }) => {
   }, [messages]);
 
   useEffect(() => {
+    // Inject spinner CSS to ensure animation works
+    injectSpinnerCSS();
+
     if (initialQuery) {
       // Add initial user message
       const userMessage = {
@@ -81,6 +111,24 @@ const ConversationView = ({ initialQuery, onBack }) => {
 
   const performSmartSearch = async (query) => {
     try {
+      // Validate query before processing (server-side backup validation)
+      const validation = queryValidationService.validateQuery(query);
+
+      if (!validation.isValid) {
+        const validationErrorResponse = {
+          id: 2,
+          type: 'assistant',
+          content: {
+            error: `Query validation failed: ${validation.message}`,
+            validationGuidance: validation.suggestions
+          },
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, validationErrorResponse]);
+        setIsLoading(false);
+        return;
+      }
+
       const data = await smartSearchService.search(query);
 
       const aiResponse = {
@@ -721,7 +769,21 @@ const ConversationView = ({ initialQuery, onBack }) => {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="loading-content">
-              <Loader2 className="loading-spinner" size={20} />
+              <div className="loading-spinner-container">
+                <div className="loading-spinner-wrapper">
+                  <div
+                    className="loading-spinner rotating-spinner"
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      border: '3px solid #f3f4f6',
+                      borderTop: '3px solid #0066cc',
+                      borderRadius: '50%',
+                      display: 'inline-block'
+                    }}
+                  />
+                </div>
+              </div>
               <span>Analyzing ESG intelligence...</span>
               <div className="loading-steps">
                 <div>🎯 Enhancing query with Borouge context</div>

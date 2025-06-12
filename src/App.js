@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MessageSquare, Users, Bookmark, Menu, X } from 'lucide-react';
+import { MessageSquare, Users, Bookmark, Menu, X } from 'lucide-react';
 import ConversationView from './components/ConversationView';
+import QueryGuidanceModal from './components/QueryGuidanceModal';
+import { queryValidationService } from './services/queryValidationService';
 import { injectNuclearCSS } from './nuclear-css-injection';
 import { autoVerifySizing } from './size-verification';
 import './App.css';
@@ -17,6 +19,8 @@ function App() {
   const [currentView, setCurrentView] = useState('search'); // 'search' or 'conversation'
   const [activeQuery, setActiveQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showGuidanceModal, setShowGuidanceModal] = useState(false);
+  const [validationResult, setValidationResult] = useState(null);
 
   // Nuclear CSS injection and size verification on component mount
   useEffect(() => {
@@ -45,20 +49,33 @@ function App() {
   ];
 
   const handleSearch = (query) => {
-    if (query.trim()) {
-      setActiveQuery(query);
-      setCurrentView('conversation');
-      setSearchQuery('');
-      setSidebarOpen(false);
-
-      // Add to conversations
-      const newConversation = {
-        id: Date.now(),
-        query: query,
-        timestamp: new Date()
-      };
-      setConversations([newConversation, ...conversations]);
+    if (!query || !query.trim()) {
+      return;
     }
+
+    // Validate the query
+    const validation = queryValidationService.validateQuery(query);
+
+    if (!validation.isValid) {
+      // Show guidance modal for invalid queries
+      setValidationResult(validation);
+      setShowGuidanceModal(true);
+      return;
+    }
+
+    // Query is valid, proceed with search
+    setActiveQuery(query);
+    setCurrentView('conversation');
+    setSearchQuery('');
+    setSidebarOpen(false);
+
+    // Add to conversations
+    const newConversation = {
+      id: Date.now(),
+      query: query,
+      timestamp: new Date()
+    };
+    setConversations([newConversation, ...conversations]);
   };
 
   const handleBackToSearch = () => {
@@ -80,6 +97,19 @@ function App() {
     setActiveQuery(conversation.query);
     setCurrentView('conversation');
     setSidebarOpen(false);
+  };
+
+  const handleCloseGuidanceModal = () => {
+    setShowGuidanceModal(false);
+    setValidationResult(null);
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setSearchQuery(suggestion);
+    setShowGuidanceModal(false);
+    setValidationResult(null);
+    // Automatically search with the suggestion
+    handleSearch(suggestion);
   };
 
   return (
@@ -261,7 +291,7 @@ function App() {
               transition={{ delay: 0.2, duration: 0.6 }}
             >
               <motion.h1
-                className="title clean-title"
+                className="title clean-title main-title"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3, duration: 0.6 }}
@@ -269,7 +299,7 @@ function App() {
                   scale: 1.01
                 }}
               >
-                ESG Intelligence Engine
+                The ESG Intelligence Engine
               </motion.h1>
             </motion.div>
 
@@ -281,27 +311,30 @@ function App() {
               transition={{ delay: 0.5, duration: 0.6 }}
             >
               <motion.div
-                className="search-box"
-                whileHover={{ scale: 1.01 }}
+                className="search-box modern-search"
+                whileHover={{ scale: 1.002 }}
                 transition={{ duration: 0.2 }}
               >
-                <input
-                  type="text"
-                  className="search-input"
-                  placeholder="EU plastic regulations impact on Borouge operations"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                />
-                <div className="search-controls">
-                  <span className="research-badge">RESEARCH ONLY</span>
+                <div className="search-input-container">
+                  <input
+                    type="text"
+                    className="search-input modern-input"
+                    placeholder="ESG regulations affecting Borouge operations..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                  />
                   <motion.button
-                    className="search-btn"
+                    className={`search-submit-btn ${searchQuery.trim() ? 'active' : 'inactive'}`}
                     onClick={() => handleSearch(searchQuery)}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    animate={{
+                      backgroundColor: searchQuery.trim() ? '#0066cc' : '#9ca3af'
+                    }}
+                    transition={{ duration: 0.2 }}
                   >
-                    <Search className="search-icon" />
+                    ↑
                   </motion.button>
                 </div>
               </motion.div>
@@ -341,6 +374,14 @@ function App() {
           />
         )}
       </AnimatePresence>
+
+      {/* Query Guidance Modal */}
+      <QueryGuidanceModal
+        isOpen={showGuidanceModal}
+        onClose={handleCloseGuidanceModal}
+        validationResult={validationResult}
+        onSuggestionClick={handleSuggestionClick}
+      />
     </div>
   );
 }

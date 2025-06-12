@@ -20,12 +20,81 @@ class ESGIntelligenceService {
     this.executiveSummaryService = new ExecutiveSummaryService(config, supabase, this.aiService);
   }
 
+  // Query validation method
+  validateQuery(query) {
+    if (!query || typeof query !== 'string') {
+      return {
+        isValid: false,
+        reason: 'empty',
+        message: 'Query is empty or invalid'
+      };
+    }
+
+    const trimmedQuery = query.trim();
+
+    // Check minimum length
+    if (trimmedQuery.length < 3) {
+      return {
+        isValid: false,
+        reason: 'too_short',
+        message: 'Query is too short. Please provide a more detailed search term.'
+      };
+    }
+
+    // Check for meaningless patterns (basic server-side validation)
+    const meaninglessPatterns = [
+      /^[a-z]{3,}$/i, // Random letter sequences
+      /^[A-Z]{3,}$/, // All caps random sequences
+      /^[0-9]+$/, // Only numbers
+      /^(.)\1{2,}$/, // Repeated characters
+    ];
+
+    if (meaninglessPatterns.some(pattern => pattern.test(trimmedQuery))) {
+      return {
+        isValid: false,
+        reason: 'meaningless',
+        message: 'Query appears to contain random characters. Please enter a meaningful ESG-related search term.'
+      };
+    }
+
+    // Basic ESG relevance check
+    const esgKeywords = [
+      'esg', 'environmental', 'social', 'governance', 'sustainability', 'carbon', 'emissions',
+      'climate', 'renewable', 'energy', 'waste', 'pollution', 'recycling', 'circular',
+      'diversity', 'inclusion', 'safety', 'compliance', 'regulation', 'petrochemical',
+      'plastic', 'polymer', 'borouge', 'cbam', 'reach', 'eu', 'reporting'
+    ];
+
+    const queryLower = trimmedQuery.toLowerCase();
+    const hasESGRelevance = esgKeywords.some(keyword => queryLower.includes(keyword));
+
+    if (!hasESGRelevance && trimmedQuery.length > 5) {
+      return {
+        isValid: false,
+        reason: 'not_esg_related',
+        message: 'Query does not appear to be related to ESG topics or Borouge\'s business operations.'
+      };
+    }
+
+    return {
+      isValid: true,
+      enhancedQuery: trimmedQuery
+    };
+  }
+
   // Main ESG intelligence processing endpoint
   async processQuery(query) {
     const startTime = Date.now();
 
     try {
       console.log(`🔍 Processing ESG query: "${query.substring(0, 100)}${query.length > 100 ? '...' : ''}"`);
+
+      // Validate query first
+      const validation = this.validateQuery(query);
+      if (!validation.isValid) {
+        console.log(`❌ Query validation failed: ${validation.reason}`);
+        throw new Error(`Query validation failed: ${validation.message}`);
+      }
 
       // Check cache first
       const cachedResult = await this.cacheService.checkCache(query);
@@ -67,6 +136,13 @@ class ESGIntelligenceService {
 
     try {
       console.log(`🔍 Processing multi-source smart search: "${query}"`);
+
+      // Validate query first
+      const validation = this.validateQuery(query);
+      if (!validation.isValid) {
+        console.log(`❌ Smart search validation failed: ${validation.reason}`);
+        throw new Error(`Query validation failed: ${validation.message}`);
+      }
 
       // Step 1: Enhance query with Borouge context
       const queryEnhancements = this.queryEnhancementService.enhanceQuery(query);
@@ -138,6 +214,13 @@ class ESGIntelligenceService {
 
     try {
       console.log(`🔍 Starting ESG Smart Search for: "${query}"`);
+
+      // Validate query first
+      const validation = this.validateQuery(query);
+      if (!validation.isValid) {
+        console.log(`❌ Smart search validation failed: ${validation.reason}`);
+        throw new Error(`Query validation failed: ${validation.message}`);
+      }
 
       // Step 1: Enhance query using Bo_Prompt context
       const queryEnhancements = this.queryEnhancementService.enhanceQuery(query);

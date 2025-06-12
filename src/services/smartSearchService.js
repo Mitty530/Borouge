@@ -4,7 +4,7 @@
 const mockArticles = [
   {
     title: "EU Plastic Waste Regulations: New Framework for 2024",
-    description: "The European Union introduces comprehensive plastic waste regulations affecting petrochemical companies globally, with specific implications for Middle Eastern producers.",
+    description: "The European Union introduces comprehensive plastic waste regulations affecting petrochemical companies globally, with specific implications for Middle Eastern producers like Borouge.",
     source: { name: "Reuters" },
     publishedAt: "2024-01-15T10:30:00Z",
     url: "https://www.reuters.com/business/environment/",
@@ -13,7 +13,7 @@ const mockArticles = [
   },
   {
     title: "CBAM Implementation: Carbon Border Adjustment Impact on Petrochemicals",
-    description: "Analysis of how the Carbon Border Adjustment Mechanism will affect petrochemical exports from the Middle East to European markets.",
+    description: "Analysis of how the Carbon Border Adjustment Mechanism will affect petrochemical exports from the Middle East to European markets, with Borouge operations under scrutiny.",
     source: { name: "Financial Times" },
     publishedAt: "2024-01-12T14:20:00Z",
     url: "https://www.ft.com/climate-capital",
@@ -22,7 +22,7 @@ const mockArticles = [
   },
   {
     title: "Circular Economy Initiatives in Plastic Manufacturing",
-    description: "Leading petrochemical companies are investing in circular economy solutions to meet sustainability targets and regulatory requirements.",
+    description: "Leading petrochemical companies are investing in circular economy solutions to meet sustainability targets and regulatory requirements, with Borouge exploring new opportunities.",
     source: { name: "Chemical Week" },
     publishedAt: "2024-01-10T09:15:00Z",
     url: "https://www.chemweek.com/",
@@ -31,7 +31,7 @@ const mockArticles = [
   },
   {
     title: "SABIC Announces Major Sustainability Investment",
-    description: "SABIC commits $2 billion to sustainable technology development, setting new industry benchmarks for ESG performance.",
+    description: "SABIC commits $2 billion to sustainable technology development, setting new industry benchmarks for ESG performance and creating competitive pressure for Borouge.",
     source: { name: "Arabian Business" },
     publishedAt: "2024-01-08T11:45:00Z",
     url: "https://www.arabianbusiness.com/industries/energy",
@@ -40,12 +40,39 @@ const mockArticles = [
   },
   {
     title: "Renewable Feedstock Adoption in Petrochemical Industry",
-    description: "Industry analysis shows accelerating adoption of renewable feedstocks as companies prepare for stricter environmental regulations.",
+    description: "Industry analysis shows accelerating adoption of renewable feedstocks as companies prepare for stricter environmental regulations, with implications for Borouge operations.",
     source: { name: "ICIS" },
     publishedAt: "2024-01-05T16:30:00Z",
     url: "https://www.icis.com/explore/commodities/chemicals/",
     impact_level: "MEDIUM",
     relevance_score: 82
+  },
+  {
+    title: "UAE Sustainability Reporting Requirements 2024",
+    description: "New UAE regulations mandate comprehensive ESG reporting for major corporations, affecting Borouge's compliance and transparency obligations.",
+    source: { name: "Gulf News" },
+    publishedAt: "2024-01-20T08:00:00Z",
+    url: "https://gulfnews.com/business/corporate-news",
+    impact_level: "HIGH",
+    relevance_score: 90
+  },
+  {
+    title: "Singapore Circular Economy Roadmap: Petrochemical Sector Focus",
+    description: "Singapore announces ambitious circular economy targets with specific focus on petrochemical sector, directly impacting Borouge's Singapore operations.",
+    source: { name: "Straits Times" },
+    publishedAt: "2024-01-18T12:15:00Z",
+    url: "https://www.straitstimes.com/business",
+    impact_level: "HIGH",
+    relevance_score: 88
+  },
+  {
+    title: "Dow Chemical's Circular Plastics Initiative Gains Momentum",
+    description: "Dow Chemical accelerates circular plastics investments, creating competitive pressure and market opportunities for regional players like Borouge.",
+    source: { name: "Chemical & Engineering News" },
+    publishedAt: "2024-01-16T14:30:00Z",
+    url: "https://cen.acs.org/",
+    impact_level: "OPPORTUNITY",
+    relevance_score: 83
   }
 ];
 
@@ -240,8 +267,7 @@ const fetchRealData = async (query) => {
 
 export const smartSearchService = {
   search: async (query) => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    console.log('🔍 Starting search for:', query);
 
     try {
       // Try to get real data first
@@ -249,31 +275,70 @@ export const smartSearchService = {
 
       if (realData && realData.success) {
         // Transform backend response to match our expected format
+        console.log('✅ Using real backend data');
+        console.log('📊 Backend response structure:', Object.keys(realData));
+        console.log('📊 Articles found:', realData.articles?.length || 0);
+        console.log('📊 Summary length:', realData.comprehensiveExecutiveSummary?.length || 0);
+
         return {
-          summary: realData.summary || `Analysis of ${realData.articles?.length || 0} articles for: ${query}`,
+          summary: realData.comprehensiveExecutiveSummary || realData.summary || `Analysis of ${realData.articles?.length || 0} articles for: ${query}`,
           articles: realData.articles || [],
           analysis: realData.analysis || generateAnalysis(query, realData.articles || []),
-          enhancedKeywords: realData.searchMetadata?.enhancedKeywords || generateEnhancedKeywords(query),
+          enhancedKeywords: realData.searchMetadata?.enhancedKeywords || realData.enhancedKeywords || generateEnhancedKeywords(query),
           actionItems: realData.searchMetadata?.actionItems || generateActionItems(query, realData.articles || []),
           statistics: realData.searchMetadata?.statistics || generateStatistics(realData.articles || []),
           comprehensiveExecutiveSummary: realData.comprehensiveExecutiveSummary || generateComprehensiveExecutiveSummary(query, realData.articles || []),
+          strategicInsights: realData.strategicInsights || [],
+          analytics: realData.analytics || {
+            totalArticles: realData.articles?.length || 0,
+            averageRelevance: realData.articles?.length > 0
+              ? Math.round(realData.articles.reduce((sum, article) => sum + (article.relevance_score || 0), 0) / realData.articles.length)
+              : 0,
+            overallConfidence: realData.analytics?.overallConfidence || 'medium'
+          },
           metadata: {
             query,
             totalArticles: realData.articles?.length || 0,
-            processingTime: realData.processingTime || 500,
+            processingTime: realData.processingTime || realData.metadata?.processingTime || 'N/A',
             timestamp: new Date().toISOString(),
-            source: 'backend'
+            source: 'backend',
+            note: 'Real data from Borouge ESG Intelligence backend'
           }
         };
       }
 
-      // Fallback to mock data
+      // If backend returns 0 articles or fails, use enhanced mock data with backend AI analysis
+      if (realData && realData.success && realData.comprehensiveExecutiveSummary) {
+        console.log('📊 Using hybrid approach: backend AI analysis + mock articles');
+        const mockResponse = generateMockResponse(query);
+
+        // Use backend's AI analysis but with mock articles for demonstration
+        return {
+          ...mockResponse,
+          comprehensiveExecutiveSummary: realData.comprehensiveExecutiveSummary,
+          analysis: realData.analysis || mockResponse.analysis,
+          metadata: {
+            ...mockResponse.metadata,
+            source: 'hybrid',
+            backendAnalysis: true,
+            note: 'Using AI analysis from backend with mock articles for demonstration'
+          }
+        };
+      }
+
+      // Fallback to pure mock data
       console.log('📊 Using enhanced mock data');
       const response = generateMockResponse(query);
       response.metadata.source = 'mock';
       return response;
     } catch (error) {
-      throw new Error('Smart search service unavailable');
+      console.error('Smart search service error:', error);
+      // Even on error, provide mock data for demonstration
+      console.log('📊 Using mock data due to service error');
+      const response = generateMockResponse(query);
+      response.metadata.source = 'mock_fallback';
+      response.metadata.error = error.message;
+      return response;
     }
   }
 };

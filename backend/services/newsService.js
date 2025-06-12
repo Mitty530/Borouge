@@ -164,11 +164,28 @@ class NewsService {
         throw new Error('GNews API daily quota exceeded');
       }
 
-      // Generate enhanced keywords
-      const keywords = this.generateBorogueKeywords(query);
-      const searchQuery = keywords.join(' OR ');
+      // Use simpler, more effective search queries
+      let searchQuery = query;
 
-      console.log(`🔍 Searching GNews with enhanced query: "${searchQuery}"`);
+      // Extract key terms for better search results
+      const queryLower = query.toLowerCase();
+      if (queryLower.includes('plastic') && queryLower.includes('regulation')) {
+        searchQuery = 'plastic regulations';
+      } else if (queryLower.includes('carbon') || queryLower.includes('cbam')) {
+        searchQuery = 'carbon border adjustment';
+      } else if (queryLower.includes('circular') && queryLower.includes('economy')) {
+        searchQuery = 'circular economy';
+      } else if (queryLower.includes('sustainability') || queryLower.includes('esg')) {
+        searchQuery = 'sustainability ESG';
+      } else if (queryLower.includes('petrochemical')) {
+        searchQuery = 'petrochemical industry';
+      } else {
+        // Extract the most important keywords (first 3 words)
+        const words = query.split(' ').slice(0, 3);
+        searchQuery = words.join(' ');
+      }
+
+      console.log(`🔍 Searching GNews with simplified query: "${searchQuery}" (from: "${query}")`);
 
       // Prepare API request
       const params = new URLSearchParams({
@@ -211,13 +228,13 @@ class NewsService {
       console.log(`✅ GNews API response: ${data.articles?.length || 0} articles (${processingTime}ms)`);
 
       // Process articles (skip database storage for now due to connection issues)
-      const processedArticles = this.processArticlesInMemory(data.articles || [], keywords);
+      const processedArticles = this.processArticlesInMemory(data.articles || [], [searchQuery]);
 
       return {
         success: true,
         query: searchQuery,
         originalQuery: query,
-        keywords: keywords,
+        keywords: [searchQuery],
         articlesFound: data.articles?.length || 0,
         articles: processedArticles,
         processingTime: processingTime,
@@ -259,8 +276,7 @@ class NewsService {
 
     try {
       // Strategy 2: Broader industry search
-      const industryTerms = ['petrochemical', 'chemical industry', 'polymer', 'plastic'];
-      const industryQuery = `"${query}" AND (${industryTerms.join(' OR ')})`;
+      const industryQuery = 'petrochemical industry';
       console.log(`🔍 Strategy 2: Industry search for "${industryQuery}"`);
 
       const industryResults = await this.searchNews(industryQuery, {
@@ -283,14 +299,13 @@ class NewsService {
 
     try {
       // Strategy 3: ESG-focused search
-      const esgTerms = ['ESG', 'sustainability', 'carbon', 'environment', 'circular economy'];
-      const esgQuery = `"${query}" AND (${esgTerms.join(' OR ')})`;
+      const esgQuery = 'sustainability ESG';
       console.log(`🔍 Strategy 3: ESG search for "${esgQuery}"`);
 
       const esgResults = await this.searchNews(esgQuery, {
         ...options,
         maxResults: 10,
-        country: 'ae' // UAE focus for regional relevance
+        country: 'us' // Use US for better article availability
       });
 
       if (esgResults.success) {
