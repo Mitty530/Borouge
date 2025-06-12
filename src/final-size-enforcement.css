@@ -1,37 +1,69 @@
-/* FINAL SIZE ENFORCEMENT - LOADED LAST TO OVERRIDE EVERYTHING */
-/* This file contains the most aggressive overrides to ensure professional sizing */
+/* NUCLEAR CSS ENFORCEMENT - MAXIMUM SPECIFICITY OVERRIDES */
+/* This file uses the highest possible CSS specificity to force professional sizing */
 
-/* CRITICAL: Disable any browser zoom or scaling */
-html {
+/* CRITICAL: Disable any browser zoom or scaling with maximum specificity */
+html, html.no-js, html.js, html[lang], html[dir] {
   zoom: 1 !important;
-  -webkit-text-size-adjust: 100% !important;
-  -ms-text-size-adjust: 100% !important;
-  text-size-adjust: 100% !important;
+  -webkit-text-size-adjust: none !important;
+  -ms-text-size-adjust: none !important;
+  text-size-adjust: none !important;
   font-size: 14px !important;
+  transform: scale(1) !important;
 }
 
-body {
+body, body.loaded, body[class], div#root body {
   zoom: 1 !important;
   transform: scale(1) !important;
   font-size: 14px !important;
   line-height: 1.5 !important;
+  -webkit-transform: scale(1) !important;
+  -moz-transform: scale(1) !important;
+  -ms-transform: scale(1) !important;
 }
 
-/* ABSOLUTE TITLE SIZE ENFORCEMENT */
-.clean-title, .title, h1, [class*="title"], [class*="Title"] {
+/* NUCLEAR TITLE SIZE ENFORCEMENT - MAXIMUM SPECIFICITY */
+.app .main-content .header .clean-title,
+.app .main-content .header .title,
+.app .main-content .header h1,
+.clean-title.clean-title.clean-title,
+.title.title.title,
+h1.clean-title,
+h1.title,
+[class*="title"][class*="title"],
+[class*="Title"][class*="Title"],
+.main-content h1,
+.header h1,
+div h1,
+h1 {
   font-size: 28px !important;
   line-height: 1.2 !important;
   margin-bottom: 16px !important;
   font-weight: 600 !important;
   letter-spacing: -0.01em !important;
+  max-width: 800px !important;
+  text-align: center !important;
 }
 
-/* ABSOLUTE SEARCH INPUT SIZE ENFORCEMENT */
-.search-input, input[type="text"], input[placeholder*="regulations"] {
+/* NUCLEAR SEARCH INPUT SIZE ENFORCEMENT - MAXIMUM SPECIFICITY */
+.app .main-content .search-container .search-box .search-input,
+.search-container .search-box .search-input,
+.search-box .search-input,
+.search-input.search-input.search-input,
+input.search-input,
+input[type="text"].search-input,
+input[placeholder*="regulations"],
+input[placeholder*="Borouge"],
+input[placeholder*="EU"],
+.main-content input,
+.search-container input,
+input[type="text"] {
   font-size: 16px !important;
   padding: 12px 120px 12px 16px !important;
   height: 44px !important;
   line-height: 1.4 !important;
+  box-sizing: border-box !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
 }
 
 /* ABSOLUTE CONTAINER SIZE ENFORCEMENT */

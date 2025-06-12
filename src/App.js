@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, MessageSquare, Users, Bookmark, Menu, X } from 'lucide-react';
 import ConversationView from './components/ConversationView';
+import { injectNuclearCSS } from './nuclear-css-injection';
+import { autoVerifySizing } from './size-verification';
 import './App.css';
 import './responsive-fixes.css';
 import './vercel-deployment-fixes.css';
 import './professional-normalization.css';
+import './css-variables-override.css';
 import './final-size-enforcement.css';
 
 function App() {
@@ -14,6 +17,20 @@ function App() {
   const [currentView, setCurrentView] = useState('search'); // 'search' or 'conversation'
   const [activeQuery, setActiveQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Nuclear CSS injection and size verification on component mount
+  useEffect(() => {
+    injectNuclearCSS();
+
+    // Re-inject after a short delay to ensure it overrides everything
+    const timer = setTimeout(() => {
+      injectNuclearCSS();
+      // Verify sizing after injection
+      autoVerifySizing();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // ESG-focused suggestion chips for Borouge
   const suggestionChips = [
