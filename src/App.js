@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, MessageSquare, Users, Bookmark, Menu, X } from 'lucide-react';
 import ConversationView from './components/ConversationView';
 import './App.css';
+import './responsive-fixes.css';
+import './vercel-deployment-fixes.css';
 
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,7 +64,7 @@ function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app oversized-fix">
       {/* Mobile Menu Button */}
       <motion.button
         className="mobile-menu-btn"

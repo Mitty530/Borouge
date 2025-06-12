@@ -12,11 +12,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 48px;
+  padding: clamp(12px, 2vw, 20px) clamp(16px, 4vw, 32px);
   background: var(--background-white);
   border-bottom: 1px solid var(--border-light);
   box-shadow: var(--shadow-sm);
-  max-width: 1400px;
+  max-width: min(1200px, 95vw);
   margin: 0 auto;
   width: 100%;
 }
@@ -48,11 +48,11 @@
 .messages-container {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 48px;
+  padding: clamp(16px, 3vw, 24px) clamp(16px, 4vw, 32px);
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-width: 1400px;
+  gap: clamp(16px, 2vw, 24px);
+  max-width: min(1200px, 95vw);
   margin: 0 auto;
   width: 100%;
 }
@@ -81,7 +81,7 @@
 }
 
 .message-content {
-  font-size: 16px;
+  font-size: clamp(14px, 2vw, 16px);
   line-height: 1.5;
   margin-bottom: 8px;
 }
@@ -139,7 +139,7 @@
 }
 
 .report-title-section h3 {
-  font-size: 22px;
+  font-size: clamp(18px, 2.5vw, 22px);
   font-weight: 700;
   color: var(--text-primary);
   margin: 0 0 8px 0;

@@ -34,10 +34,13 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--text-primary);
   background-color: var(--background-white);
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
 /* Dark mode support */
@@ -62,9 +65,10 @@ body {
 
 /* Sidebar */
 .sidebar {
-  width: 320px;
+  width: min(320px, 25vw);
+  min-width: 280px;
   background: linear-gradient(135deg, var(--primary-purple) 0%, #f8f7ff 100%);
-  padding: 24px;
+  padding: clamp(16px, 2vw, 24px);
   display: flex;
   flex-direction: column;
   border-right: 1px solid var(--border-light);
@@ -195,7 +199,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px;
+  padding: clamp(16px, 4vw, 32px);
   background: linear-gradient(135deg, var(--background-white) 0%, #fafbff 100%);
   min-height: 100vh;
   position: relative;
@@ -223,10 +227,10 @@ body {
 
 /* Clean Title Styling */
 .clean-title {
-  font-size: 64px;
+  font-size: clamp(28px, 5vw, 48px);
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.1;
+  line-height: 1.2;
   margin-bottom: 12px;
   letter-spacing: -0.025em;
   text-align: center;
@@ -246,10 +250,10 @@ body {
 
 /* Legacy title class for backward compatibility */
 .title {
-  font-size: 64px;
+  font-size: clamp(28px, 5vw, 48px);
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.1;
+  line-height: 1.2;
   margin-bottom: 12px;
   letter-spacing: -0.025em;
 }
@@ -257,8 +261,8 @@ body {
 /* Search Section */
 .search-container {
   width: 100%;
-  max-width: 800px;
-  margin-bottom: 48px;
+  max-width: min(800px, 90vw);
+  margin-bottom: clamp(24px, 4vw, 48px);
   position: relative;
   z-index: 1;
 }
@@ -286,10 +290,10 @@ body {
 
 .search-input {
   width: 100%;
-  padding: 32px 200px 32px 32px;
+  padding: clamp(16px, 3vw, 24px) clamp(120px, 15vw, 180px) clamp(16px, 3vw, 24px) clamp(16px, 3vw, 24px);
   border: none;
   background: transparent;
-  font-size: 20px;
+  font-size: clamp(14px, 2.5vw, 18px);
   font-weight: 400;
   outline: none;
   color: var(--text-primary);
