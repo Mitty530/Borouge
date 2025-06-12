@@ -60,7 +60,7 @@ Company Context:
 Your task is to analyze ESG queries and provide structured business intelligence specifically relevant to Borouge's operations, market position, and strategic challenges.`;
   }
 
-  // Create simplified prompt for AI analysis
+  // Create comprehensive ESG analysis prompt for AI analysis
   createAnalysisPrompt(query) {
     const baseContext = this.getBorogueContext();
 
@@ -68,9 +68,25 @@ Your task is to analyze ESG queries and provide structured business intelligence
 
 Query: "${query}"
 
-Please provide a simple response acknowledging the query and indicating that the system has been cleaned and is ready for new implementation.
+As Borouge's Chief ESG Intelligence Analyst, provide a comprehensive strategic analysis for this query. Your analysis should include:
 
-Return a simple text response, not JSON.`;
+1. **Executive Summary**: Key findings and strategic implications for Borouge
+2. **Business Impact Assessment**: How this affects Borouge's operations, market position, and competitive advantage
+3. **Risk Analysis**: Potential risks, timeline, and mitigation strategies
+4. **Opportunity Assessment**: Strategic opportunities, market potential, and competitive advantages
+5. **Regulatory Implications**: Compliance requirements, regulatory landscape, and policy impacts
+6. **Financial Implications**: Cost estimates, investment requirements, and ROI potential
+7. **Strategic Recommendations**: Immediate actions and long-term strategic initiatives
+8. **ESG Alignment**: How this aligns with Borouge's sustainability goals and circular economy strategy
+
+Provide detailed, actionable insights that enable executive decision-making. Focus on:
+- Quantitative estimates where possible (costs, timelines, market sizes)
+- Borouge's specific geographic footprint (UAE, Middle East, global markets)
+- Petrochemical industry context and competitive landscape
+- ESG, sustainability, and circular economy implications
+- Strategic value and business impact assessment
+
+Return a comprehensive analysis in clear, structured text format.`;
 
     return prompt;
   }
@@ -82,6 +98,7 @@ Return a simple text response, not JSON.`;
     }
 
     const prompt = this.createAnalysisPrompt(query);
+    console.log(`🔍 DEBUG - Groq prompt being sent: ${prompt.substring(0, 200)}...`);
 
     try {
       console.log(`🔄 Making Groq API request...`);
@@ -92,11 +109,15 @@ Return a simple text response, not JSON.`;
           { role: 'user', content: prompt }
         ],
         temperature: 0.3,
-        max_tokens: 2000
+        max_tokens: 3000  // Increased for fallback comprehensive analysis
       };
 
       console.log(`📤 Groq request: ${this.config.groq.baseUrl}/chat/completions`);
       console.log(`📤 Model: ${requestBody.model}`);
+
+      // Create AbortController for timeout (5 seconds for Groq - fallback provider)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       const response = await fetch(`${this.config.groq.baseUrl}/chat/completions`, {
         method: 'POST',
@@ -104,8 +125,11 @@ Return a simple text response, not JSON.`;
           'Authorization': `Bearer ${this.config.groq.apiKey}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       console.log(`📥 Groq response status: ${response.status} ${response.statusText}`);
 
@@ -142,6 +166,7 @@ Return a simple text response, not JSON.`;
     }
 
     const prompt = this.createAnalysisPrompt(query);
+    console.log(`🔍 DEBUG - Gemini prompt being sent: ${prompt.substring(0, 200)}...`);
 
     try {
       console.log(`🔄 Making Gemini API request...`);
@@ -153,20 +178,27 @@ Return a simple text response, not JSON.`;
         }],
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 2000
+          maxOutputTokens: 4000  // Increased for comprehensive ESG analysis (5000-6000 chars)
         }
       };
 
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${this.config.gemini.apiKey}`;
       console.log(`📤 Gemini request URL: ${apiUrl.replace(this.config.gemini.apiKey, 'API_KEY_HIDDEN')}`);
 
+      // Create AbortController for timeout (15 seconds for comprehensive ESG analysis)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       console.log(`📥 Gemini response status: ${response.status} ${response.statusText}`);
 
@@ -205,6 +237,10 @@ Return a simple text response, not JSON.`;
     const prompt = this.createAnalysisPrompt(query);
 
     try {
+      // Create AbortController for timeout (10 seconds for OpenAI - emergency fallback)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -218,9 +254,12 @@ Return a simple text response, not JSON.`;
             { role: 'user', content: prompt }
           ],
           temperature: 0.3,
-          max_tokens: 2000
-        })
+          max_tokens: 3500  // Increased for emergency comprehensive analysis
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
@@ -261,8 +300,8 @@ Return a simple text response, not JSON.`;
       attempts++;
 
       try {
-        // Select optimal provider based on current conditions
-        const selectedProvider = this.providerManager.selectOptimalProvider('low', false);
+        // Select ESG-optimized provider (GEMINI PRIORITIZED for comprehensive analysis)
+        const selectedProvider = this.providerManager.selectProviderForESG('comprehensive');
         console.log(`🎯 Attempt ${attempts}: Using ${selectedProvider}`);
 
         // Record provider usage for rate limiting
@@ -275,9 +314,9 @@ Return a simple text response, not JSON.`;
 
         const responseTime = Date.now() - startTime;
 
-        // Simple response structure
+        // Comprehensive response structure
         const result = {
-          response: rawResponse || `Thank you for your query: "${query}". The system has been cleaned and is ready for the new implementation.`
+          response: rawResponse || `ESG Intelligence Analysis for "${query}": Analysis temporarily unavailable. Please ensure AI providers are properly configured and try again.`
         };
 
         // Record successful response

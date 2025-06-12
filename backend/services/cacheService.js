@@ -154,20 +154,31 @@ class CacheService {
   // Get cache statistics
   async getCacheStats() {
     try {
-      const { data, error } = await this.supabase
+      // Get count of active cache entries
+      const { count: totalEntries, error: countError } = await this.supabase
         .from('esg_intelligence_cache')
-        .select('count(*), sum(hit_count)')
-        .gt('expires_at', new Date().toISOString())
-        .single();
+        .select('*', { count: 'exact', head: true })
+        .gt('expires_at', new Date().toISOString());
 
-      if (error) {
-        console.error('Cache stats error:', error);
-        return { totalEntries: 0, totalHits: 0 };
+      if (countError) {
+        console.error('Cache count error:', countError);
       }
 
+      // Get sum of hit counts
+      const { data: hitData, error: hitError } = await this.supabase
+        .from('esg_intelligence_cache')
+        .select('hit_count')
+        .gt('expires_at', new Date().toISOString());
+
+      if (hitError) {
+        console.error('Cache hits error:', hitError);
+      }
+
+      const totalHits = hitData?.reduce((sum, row) => sum + (row.hit_count || 0), 0) || 0;
+
       return {
-        totalEntries: data.count || 0,
-        totalHits: data.sum || 0
+        totalEntries: totalEntries || 0,
+        totalHits: totalHits
       };
     } catch (error) {
       console.error('Cache stats error:', error);
@@ -184,7 +195,7 @@ class CacheService {
         .from('esg_intelligence_cache')
         .delete()
         .lt('expires_at', new Date().toISOString())
-        .select('count');
+        .select('id');
 
       if (error) {
         console.error('Cache cleanup error:', error);
@@ -233,7 +244,7 @@ class CacheService {
         .from('esg_intelligence_cache')
         .delete()
         .ilike('query', `%${pattern}%`)
-        .select('count');
+        .select('id');
 
       if (error) {
         console.error('Cache invalidation error:', error);

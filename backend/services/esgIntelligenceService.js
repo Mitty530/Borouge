@@ -234,7 +234,7 @@ class ESGIntelligenceService {
       query: query,
       responseTime: responseTime,
       cached: false,
-      response: aiResult.response || `Thank you for your query: "${query}". The system has been cleaned and is ready for the new implementation.`
+      response: aiResult.response || `ESG Intelligence Analysis for "${query}": Comprehensive analysis temporarily unavailable. Please check system configuration.`
     };
 
     console.log(`✅ Response structured for simplified interface`);

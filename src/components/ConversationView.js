@@ -154,7 +154,14 @@ const ConversationView = ({ initialQuery, onBack }) => {
                       ) : (
                         <div className="json-response">
                           {/* Enhanced Executive Summary Section */}
-                          {message.content.comprehensiveExecutiveSummary && (
+                          {(message.content.comprehensiveExecutiveSummary || message.content.executiveSummary) && (() => {
+                            // Handle both data structures - new comprehensive format and current backend format
+                            const execSummary = message.content.comprehensiveExecutiveSummary || message.content.executiveSummary;
+                            const strategicData = message.content.strategicInsights || {};
+                            const analytics = message.content.analytics || {};
+                            const articles = message.content.articles || [];
+
+                            return (
                             <div className="comprehensive-executive-summary">
                               <h2>🎯 Executive Intelligence Report</h2>
 
@@ -164,36 +171,154 @@ const ConversationView = ({ initialQuery, onBack }) => {
                                 <div className="overview-content">
                                   <div className="key-findings">
                                     <strong>Key Findings:</strong>
-                                    <div className="findings-text">{message.content.comprehensiveExecutiveSummary.executive_overview?.key_findings}</div>
+                                    <div className="findings-text">{execSummary.keyFindings || execSummary.executive_overview?.key_findings || 'Analysis in progress'}</div>
                                   </div>
                                   <div className="strategic-implications">
                                     <strong>Strategic Implications:</strong>
-                                    <div className="implications-text">{message.content.comprehensiveExecutiveSummary.executive_overview?.strategic_implications}</div>
+                                    <div className="implications-text">{execSummary.strategicImplications || execSummary.executive_overview?.strategic_implications || 'Assessment pending'}</div>
                                   </div>
                                   <div className="urgency-assessment">
                                     <strong>Urgency Assessment:</strong>
-                                    <div className="urgency-text">{message.content.comprehensiveExecutiveSummary.executive_overview?.urgency_assessment}</div>
+                                    <div className="urgency-text">{execSummary.urgencyAssessment || execSummary.executive_overview?.urgency_assessment || 'Under review'}</div>
                                   </div>
-                                  {message.content.comprehensiveExecutiveSummary.executive_overview?.financial_impact_range && (
+                                  {(execSummary.executive_overview?.financial_impact_range || analytics.averageRelevance) && (
                                     <div className="financial-impact">
-                                      <strong>Financial Impact Range:</strong>
-                                      <div className="impact-text">{message.content.comprehensiveExecutiveSummary.executive_overview?.financial_impact_range}</div>
+                                      <strong>Analysis Metrics:</strong>
+                                      <div className="impact-text">
+                                        {execSummary.executive_overview?.financial_impact_range || `Average Relevance: ${analytics.averageRelevance}%`}
+                                      </div>
                                     </div>
                                   )}
-                                  {message.content.comprehensiveExecutiveSummary.executive_overview?.competitive_urgency && (
+                                  {execSummary.executive_overview?.competitive_urgency && (
                                     <div className="competitive-urgency">
                                       <strong>Competitive Urgency:</strong>
-                                      <div className="urgency-text">{message.content.comprehensiveExecutiveSummary.executive_overview?.competitive_urgency}</div>
+                                      <div className="urgency-text">{execSummary.executive_overview?.competitive_urgency}</div>
                                     </div>
                                   )}
                                   <div className="confidence-level">
                                     <strong>Confidence Level:</strong>
-                                    <span className={`confidence-badge ${message.content.comprehensiveExecutiveSummary.executive_overview?.confidence_level?.toLowerCase()}`}>
-                                      {message.content.comprehensiveExecutiveSummary.executive_overview?.confidence_level?.toUpperCase()}
+                                    <span className={`confidence-badge ${(execSummary.confidenceLevel || execSummary.executive_overview?.confidence_level || 'medium').toLowerCase()}`}>
+                                      {(execSummary.confidenceLevel || execSummary.executive_overview?.confidence_level || 'MEDIUM').toUpperCase()}
                                     </span>
                                   </div>
                                 </div>
                               </div>
+
+                              {/* Current Backend Data Display */}
+                              {!message.content.comprehensiveExecutiveSummary && message.content.executiveSummary && (
+                                <div className="current-backend-analysis">
+                                  <h3>📊 Intelligence Analysis Summary</h3>
+                                  <div className="analysis-content">
+                                    <div className="headline">
+                                      <strong>Analysis:</strong> {execSummary.headline}
+                                    </div>
+                                    {execSummary.nextSteps && execSummary.nextSteps.length > 0 && (
+                                      <div className="next-steps">
+                                        <strong>Recommended Next Steps:</strong>
+                                        <ul>
+                                          {execSummary.nextSteps.map((step, index) => (
+                                            <li key={index}>{step}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Strategic Insights from Backend */}
+                              {strategicData.keyThemes && (
+                                <div className="strategic-insights-backend">
+                                  <h3>🎯 Strategic Intelligence Insights</h3>
+
+                                  {strategicData.keyThemes.length > 0 && (
+                                    <div className="key-themes">
+                                      <h4>📈 Key Themes Identified</h4>
+                                      <div className="themes-grid">
+                                        {strategicData.keyThemes.map((theme, index) => (
+                                          <div key={index} className="theme-item">
+                                            <span className="theme-name">{theme.theme.toUpperCase()}</span>
+                                            <span className="theme-count">{theme.count} articles ({theme.percentage}%)</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {strategicData.geographicFocus && (
+                                    <div className="geographic-focus">
+                                      <h4>🌍 Geographic Focus</h4>
+                                      <div className="geo-grid">
+                                        {Object.entries(strategicData.geographicFocus).map(([region, count]) => (
+                                          count > 0 && (
+                                            <div key={region} className="geo-item">
+                                              <span className="geo-region">{region}</span>
+                                              <span className="geo-count">{count} articles</span>
+                                            </div>
+                                          )
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {strategicData.esgImplications && (
+                                    <div className="esg-implications">
+                                      <h4>🌱 ESG Impact Distribution</h4>
+                                      <div className="esg-grid">
+                                        {Object.entries(strategicData.esgImplications).map(([category, count]) => (
+                                          count > 0 && (
+                                            <div key={category} className="esg-item">
+                                              <span className="esg-category">{category}</span>
+                                              <span className="esg-count">{count} articles</span>
+                                            </div>
+                                          )
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Analytics Dashboard */}
+                              {analytics.totalArticles > 0 && (
+                                <div className="analytics-dashboard">
+                                  <h3>📊 Analysis Dashboard</h3>
+                                  <div className="analytics-grid">
+                                    <div className="metric-item">
+                                      <span className="metric-label">Articles Analyzed</span>
+                                      <span className="metric-value">{analytics.totalArticles}</span>
+                                    </div>
+                                    <div className="metric-item">
+                                      <span className="metric-label">Average Relevance</span>
+                                      <span className="metric-value">{analytics.averageRelevance}%</span>
+                                    </div>
+                                    <div className="metric-item">
+                                      <span className="metric-label">Actionable Insights</span>
+                                      <span className="metric-value">{analytics.actionableInsights}</span>
+                                    </div>
+                                    <div className="metric-item">
+                                      <span className="metric-label">Strategic Opportunities</span>
+                                      <span className="metric-value">{analytics.strategicOpportunities}</span>
+                                    </div>
+                                  </div>
+
+                                  {analytics.impactDistribution && (
+                                    <div className="impact-distribution">
+                                      <h4>Impact Level Distribution</h4>
+                                      <div className="impact-grid">
+                                        {Object.entries(analytics.impactDistribution).map(([level, count]) => (
+                                          count > 0 && (
+                                            <div key={level} className={`impact-item impact-${level.toLowerCase()}`}>
+                                              <span className="impact-level">{level}</span>
+                                              <span className="impact-count">{count}</span>
+                                            </div>
+                                          )
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
 
                               {/* Business Impact Analysis */}
                               {message.content.comprehensiveExecutiveSummary.business_impact_analysis && (
@@ -452,7 +577,8 @@ const ConversationView = ({ initialQuery, onBack }) => {
                                 </div>
                               )}
                             </div>
-                          )}
+                            );
+                          })()}
 
                           {/* Enhanced Analytics Section */}
                           {(message.content.analytics || message.content.statistics) && (

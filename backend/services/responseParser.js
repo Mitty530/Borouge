@@ -13,8 +13,8 @@ class ResponseParser {
     try {
       console.log(`🔍 Parsing response from ${provider} (${rawResponse ? rawResponse.length : 0} chars)`);
 
-      // Simple text response handling
-      const response = rawResponse || `Thank you for your query: "${query}". The system has been cleaned and is ready for the new implementation.`;
+      // Comprehensive ESG analysis response handling
+      const response = rawResponse || `ESG Intelligence Analysis for "${query}": Comprehensive analysis temporarily unavailable. Please check AI provider configuration.`;
 
       console.log(`✅ Response parsed successfully (${Date.now() - startTime}ms)`);
 
