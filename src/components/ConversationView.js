@@ -149,25 +149,61 @@ const ConversationView = ({ initialQuery, onBack }) => {
       const data = await smartSearchService.search(query);
       const searchDuration = Date.now() - searchStartTime;
 
+      // Check if the response contains an error
+      if (data.error) {
+        console.error('❌ Backend service error:', data.error);
+
+        // Track backend service error
+        analyticsService.trackError('backend_service_error', data.error.message, {
+          context: 'smart_search',
+          query: query.substring(0, 50),
+          duration: searchDuration,
+          errorType: data.error.type
+        });
+
+        const errorResponse = {
+          id: 2,
+          type: 'assistant',
+          content: {
+            error: `ESG Intelligence service is currently unavailable. ${data.error.details || 'Please try again later.'}`,
+            errorDetails: data.error
+          },
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, errorResponse]);
+        setIsLoading(false);
+        return;
+      }
+
       // Track successful search completion
       analyticsService.trackPerformance('search_time', searchDuration, {
         query: query.substring(0, 50),
-        resultCount: data?.articles?.length || 0
+        resultCount: data?.articles?.length || 0,
+        source: data?.metadata?.source || 'unknown',
+        processingTime: data?.metadata?.processingTime || 'N/A'
       });
 
       analyticsService.trackResultsInteraction('view', query, data?.articles?.length || 0);
+
+      // Log successful backend connection
+      if (data.metadata?.source === 'backend') {
+        console.log('✅ Successfully connected to backend service');
+        console.log(`📊 Processing time: ${data.metadata.processingTime}`);
+        console.log(`📰 Articles analyzed: ${data.metadata.totalArticles}`);
+      }
 
       const aiResponse = {
         id: 2,
         type: 'assistant',
         content: data,
-        timestamp: new Date()
+        timestamp: new Date(),
+        metadata: data.metadata || {}
       };
 
       setMessages(prev => [...prev, aiResponse]);
       setIsLoading(false);
     } catch (error) {
-      console.error('Smart search error:', error);
+      console.error('❌ Smart search error:', error);
 
       // Track search error
       analyticsService.trackError('search_error', error.message, {
@@ -179,7 +215,7 @@ const ConversationView = ({ initialQuery, onBack }) => {
       const errorResponse = {
         id: 2,
         type: 'assistant',
-        content: { error: 'Failed to fetch ESG intelligence data. Please try again.' },
+        content: { error: 'Failed to connect to ESG intelligence service. Please check your connection and try again.' },
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorResponse]);

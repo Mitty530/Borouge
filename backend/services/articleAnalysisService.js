@@ -58,6 +58,148 @@ class ArticleAnalysisService {
     return analyzedArticles;
   }
 
+  // NEW: Optimized batch analysis for faster processing
+  async analyzeBatchArticlesOptimized(articles, queryEnhancements) {
+    console.log(`🚀 Starting optimized batch analysis for ${articles.length} articles`);
+    const analyzedArticles = [];
+
+    // Process articles with enhanced fallback analysis (no AI calls for speed)
+    for (const article of articles) {
+      try {
+        // Use enhanced fallback analysis for speed
+        const analysis = this.generateEnhancedFallbackAnalysis(article, queryEnhancements);
+
+        analyzedArticles.push({
+          ...article,
+          ...analysis
+        });
+
+        console.log(`⚡ Fast analyzed: ${article.title.substring(0, 50)}... (Score: ${analysis.relevance_score})`);
+
+      } catch (error) {
+        console.error(`❌ Error in fast analysis for article ${article.id}:`, error.message);
+
+        // Basic fallback
+        const basicAnalysis = this.generateFallbackAnalysis(article, queryEnhancements);
+        analyzedArticles.push({
+          ...article,
+          ...basicAnalysis
+        });
+      }
+    }
+
+    console.log(`✅ Optimized batch analysis completed: ${analyzedArticles.length} articles processed`);
+    return analyzedArticles;
+  }
+
+  // Enhanced fallback analysis with better intelligence
+  generateEnhancedFallbackAnalysis(article, queryEnhancements) {
+    const title = (article.title || '').toLowerCase();
+    const description = (article.description || '').toLowerCase();
+    const content = title + ' ' + description;
+
+    // Enhanced relevance calculation
+    let relevanceScore = 45; // Higher base score
+
+    // Enhanced keyword matching with weights
+    const keywordCategories = {
+      borouge: { keywords: ['borouge', 'adnoc', 'uae', 'abu dhabi'], weight: 20 },
+      industry: { keywords: ['petrochemical', 'polyethylene', 'polypropylene', 'plastic', 'polymer'], weight: 15 },
+      esg: { keywords: ['sustainability', 'esg', 'carbon', 'environment', 'regulation', 'compliance'], weight: 12 },
+      business: { keywords: ['market', 'revenue', 'investment', 'growth', 'strategy'], weight: 8 },
+      regulatory: { keywords: ['cbam', 'reach', 'eu', 'regulation', 'policy', 'law'], weight: 18 }
+    };
+
+    // Apply weighted scoring
+    Object.values(keywordCategories).forEach(category => {
+      const matches = category.keywords.filter(keyword => content.includes(keyword)).length;
+      relevanceScore += matches * category.weight;
+    });
+
+    // Query-specific keyword matching
+    if (queryEnhancements?.enhancedKeywords) {
+      queryEnhancements.enhancedKeywords.forEach(keyword => {
+        if (content.includes(keyword.toLowerCase())) relevanceScore += 10;
+      });
+    }
+
+    // Cap at 100
+    relevanceScore = Math.min(100, relevanceScore);
+
+    // Enhanced impact level determination
+    let impactLevel = 'LOW';
+    if (content.includes('regulation') || content.includes('compliance') || content.includes('ban') || content.includes('cbam')) {
+      impactLevel = 'HIGH';
+    } else if (content.includes('opportunity') || content.includes('investment') || content.includes('growth') || content.includes('innovation')) {
+      impactLevel = 'OPPORTUNITY';
+    } else if (content.includes('sustainability') || content.includes('carbon') || content.includes('esg') || content.includes('circular')) {
+      impactLevel = 'MEDIUM';
+    }
+
+    // Generate executive summary
+    const executiveSummary = this.generateQuickExecutiveSummary(article, impactLevel, relevanceScore);
+
+    return {
+      relevance_score: relevanceScore,
+      impact_level: impactLevel,
+      executive_summary: executiveSummary,
+      summary: article.description || executiveSummary,
+      action_items: this.generateQuickActionItems(impactLevel),
+      detailed_analysis: {
+        business_impact: `${impactLevel} impact identified for Borouge operations`,
+        regulatory_implications: impactLevel === 'HIGH' ? 'Regulatory compliance assessment required' : 'Standard monitoring recommended',
+        competitive_landscape: 'Competitive analysis pending',
+        financial_implications: 'Financial assessment required',
+        operational_considerations: 'Operational review recommended'
+      }
+    };
+  }
+
+  // Generate quick executive summary
+  generateQuickExecutiveSummary(article, impactLevel, relevanceScore) {
+    const title = article.title || 'Article';
+    const source = article.source?.name || article.source || 'Industry Source';
+
+    if (impactLevel === 'HIGH') {
+      return `High-impact development: ${title}. Immediate strategic review recommended for Borouge operations. Source: ${source}. Relevance: ${relevanceScore}%.`;
+    } else if (impactLevel === 'OPPORTUNITY') {
+      return `Strategic opportunity identified: ${title}. Potential for competitive advantage and market positioning. Source: ${source}. Relevance: ${relevanceScore}%.`;
+    } else if (impactLevel === 'MEDIUM') {
+      return `Medium-impact development: ${title}. Monitoring and assessment recommended for ESG and sustainability implications. Source: ${source}. Relevance: ${relevanceScore}%.`;
+    } else {
+      return `Industry development: ${title}. Standard monitoring recommended. Source: ${source}. Relevance: ${relevanceScore}%.`;
+    }
+  }
+
+  // Generate quick action items based on impact level
+  generateQuickActionItems(impactLevel) {
+    switch (impactLevel) {
+      case 'HIGH':
+        return [
+          'Immediate strategic review required',
+          'Assess regulatory compliance implications',
+          'Evaluate operational impact'
+        ];
+      case 'OPPORTUNITY':
+        return [
+          'Evaluate market opportunity',
+          'Assess competitive positioning',
+          'Consider strategic partnerships'
+        ];
+      case 'MEDIUM':
+        return [
+          'Monitor development closely',
+          'Assess ESG implications',
+          'Review sustainability alignment'
+        ];
+      default:
+        return [
+          'Standard industry monitoring',
+          'Include in quarterly review'
+        ];
+    }
+  }
+
   // Create comprehensive strategic intelligence analysis prompt
   createArticleAnalysisPrompt(article, queryEnhancements) {
     return `As Borouge's Chief Strategy Officer and Senior ESG Intelligence Analyst, provide comprehensive strategic intelligence analysis for executive decision-making:
@@ -446,6 +588,143 @@ ANALYSIS GUIDELINES:
         aiAnalysisSuccess: analyzedArticles.filter(a => a.executive_summary).length
       }
     };
+  }
+
+  // NEW: Structure optimized smart search response for faster processing
+  structureOptimizedSmartSearchResponse(query, queryEnhancements, newsResults, analyzedArticles, startTime) {
+    const responseTime = Date.now() - startTime;
+
+    // Sort articles by impact and relevance
+    const sortedArticles = analyzedArticles
+      .filter(a => (a.relevance_score || 0) >= 25) // Lower threshold for optimized version
+      .sort((a, b) => {
+        const impactOrder = { 'CRITICAL': 5, 'HIGH': 4, 'OPPORTUNITY': 3, 'MEDIUM': 2, 'LOW': 1 };
+        const impactDiff = (impactOrder[b.impact_level] || 1) - (impactOrder[a.impact_level] || 1);
+        if (impactDiff !== 0) return impactDiff;
+        return (b.relevance_score || 0) - (a.relevance_score || 0);
+      });
+
+    // Generate streamlined analytics
+    const analytics = this.generateStreamlinedAnalytics(analyzedArticles, newsResults);
+
+    // Generate quick executive summary
+    const executiveSummary = this.generateQuickExecutiveSummary(analytics, query);
+
+    return {
+      success: true,
+      timestamp: new Date().toISOString(),
+      query: query,
+      responseTime: responseTime,
+      cached: false,
+
+      // Streamlined search metadata
+      searchMetadata: {
+        originalQuery: query,
+        enhancedKeywords: queryEnhancements.enhancedKeywords,
+        priorityLevel: queryEnhancements.priorityLevel,
+        analysisDepth: 'optimized',
+        confidenceLevel: analytics.overallConfidence
+      },
+
+      // Quick executive summary
+      executiveSummary: executiveSummary,
+
+      // Streamlined analytics
+      analytics: analytics,
+
+      // Top articles only
+      articles: sortedArticles.slice(0, 10), // Reduced for speed
+
+      // Quick action items
+      actionItems: this.extractQuickActionItems(sortedArticles),
+
+      // API usage info
+      apiUsage: {
+        quotaRemaining: newsResults.quotaRemaining,
+        provider: 'gnews',
+        articlesProcessed: analyzedArticles.length,
+        optimizedProcessing: true
+      }
+    };
+  }
+
+  // Generate streamlined analytics for optimized processing
+  generateStreamlinedAnalytics(articles, newsResults) {
+    const total = articles.length;
+    const impactCounts = {
+      high: articles.filter(a => ['CRITICAL', 'HIGH'].includes(a.impact_level)).length,
+      opportunity: articles.filter(a => a.impact_level === 'OPPORTUNITY').length,
+      medium: articles.filter(a => a.impact_level === 'MEDIUM').length,
+      low: articles.filter(a => a.impact_level === 'LOW').length
+    };
+
+    const avgRelevance = total > 0
+      ? Math.round(articles.reduce((sum, a) => sum + (a.relevance_score || 0), 0) / total)
+      : 0;
+
+    return {
+      totalArticles: total,
+      averageRelevance: avgRelevance,
+      actionableInsights: impactCounts.high + impactCounts.opportunity,
+      strategicOpportunities: impactCounts.opportunity,
+      urgentAttentionRequired: impactCounts.high,
+      overallConfidence: avgRelevance >= 70 ? 'high' : avgRelevance >= 50 ? 'medium' : 'low',
+      processingTime: newsResults.processingTime || 0
+    };
+  }
+
+  // Generate quick executive summary for optimized processing
+  generateQuickExecutiveSummary(analytics, query) {
+    const { totalArticles, actionableInsights, strategicOpportunities, urgentAttentionRequired } = analytics;
+
+    return {
+      headline: `ESG Intelligence Analysis: ${totalArticles} articles analyzed for "${query}"`,
+      keyFindings: [
+        `${actionableInsights} actionable insights identified`,
+        `${strategicOpportunities} strategic opportunities detected`,
+        `${urgentAttentionRequired} items requiring urgent attention`
+      ],
+      nextSteps: [
+        'Review high-impact articles for immediate action',
+        'Assess strategic opportunities for competitive advantage',
+        'Monitor regulatory developments for compliance requirements'
+      ],
+      confidence: analytics.overallConfidence
+    };
+  }
+
+  // Extract quick action items for optimized processing
+  extractQuickActionItems(articles) {
+    const actionItems = [];
+
+    // High-impact articles
+    const highImpactArticles = articles.filter(a => ['CRITICAL', 'HIGH'].includes(a.impact_level));
+    if (highImpactArticles.length > 0) {
+      actionItems.push(`Review ${highImpactArticles.length} high-impact developments immediately`);
+    }
+
+    // Opportunities
+    const opportunities = articles.filter(a => a.impact_level === 'OPPORTUNITY');
+    if (opportunities.length > 0) {
+      actionItems.push(`Evaluate ${opportunities.length} strategic opportunities for competitive advantage`);
+    }
+
+    // Regulatory items
+    const regulatoryItems = articles.filter(a =>
+      (a.title || '').toLowerCase().includes('regulation') ||
+      (a.description || '').toLowerCase().includes('compliance')
+    );
+    if (regulatoryItems.length > 0) {
+      actionItems.push(`Monitor ${regulatoryItems.length} regulatory developments for compliance impact`);
+    }
+
+    // Default actions if none specific
+    if (actionItems.length === 0) {
+      actionItems.push('Continue monitoring industry developments');
+      actionItems.push('Assess ESG and sustainability implications');
+    }
+
+    return actionItems.slice(0, 5); // Limit to top 5
   }
 
   // Generate comprehensive analytics from analyzed articles

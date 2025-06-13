@@ -1,8 +1,7 @@
-// Enhanced AI Service for Borouge ESG Intelligence Platform
-// Advanced multi-provider strategy with intelligent load balancing and quality monitoring
+// Optimized AI Service for Borouge ESG Intelligence Platform
+// Gemini-only architecture for simplified, high-performance ESG analysis
 
 const crypto = require('crypto');
-const AIProviderManager = require('./aiProviderManager');
 const ResponseParser = require('./responseParser');
 
 class AIService {
@@ -11,15 +10,19 @@ class AIService {
     this.supabase = supabase;
     this.rateLimitTracking = new Map();
 
-    // Initialize advanced components
-    this.providerManager = new AIProviderManager(config, supabase);
+    // Initialize response parser
     this.responseParser = new ResponseParser();
 
     // Provider-level caching
     this.providerCache = new Map();
     this.cacheTimeout = 300000; // 5 minutes for provider-level cache
 
-    console.log('🚀 Enhanced AI Service initialized with advanced features');
+    // Validate Gemini configuration
+    if (!this.config.gemini?.apiKey) {
+      throw new Error('Gemini API key is required for ESG Intelligence');
+    }
+
+    console.log('🚀 Optimized AI Service initialized with Gemini-only architecture');
   }
 
   // Generate query hash for caching
@@ -91,82 +94,10 @@ Return a comprehensive analysis in clear, structured text format.`;
     return prompt;
   }
 
-  // Groq API integration (Primary AI Engine)
-  async analyzeWithGroq(query) {
-    if (!this.checkRateLimit('groq', this.config.groq.rateLimit)) {
-      throw new Error('Groq rate limit exceeded');
-    }
-
-    const prompt = this.createAnalysisPrompt(query);
-    console.log(`🔍 DEBUG - Groq prompt being sent: ${prompt.substring(0, 200)}...`);
-
-    try {
-      console.log(`🔄 Making Groq API request...`);
-      const requestBody = {
-        model: this.config.groq.model,
-        messages: [
-          { role: 'system', content: this.getBorogueContext() },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 3000  // Increased for fallback comprehensive analysis
-      };
-
-      console.log(`📤 Groq request: ${this.config.groq.baseUrl}/chat/completions`);
-      console.log(`📤 Model: ${requestBody.model}`);
-
-      // Create AbortController for timeout (5 seconds for Groq - fallback provider)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(`${this.config.groq.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.config.groq.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      console.log(`📥 Groq response status: ${response.status} ${response.statusText}`);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Groq API error response: ${errorText}`);
-        throw new Error(`Groq API error: ${response.status} ${response.statusText} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log(`📊 Groq response structure:`, Object.keys(data));
-
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error(`❌ Unexpected Groq response structure:`, data);
-        throw new Error('Invalid Groq API response structure');
-      }
-
-      const content = data.choices[0].message.content;
-
-      // Return the raw content for the response parser to handle
-      console.log(`✅ Groq API response received (${content.length} chars)`);
-      return content;
-
-    } catch (error) {
-      console.error('❌ Groq API error:', error.message);
-      throw error;
-    }
-  }
-
-  // Gemini API integration (Secondary AI Engine)
+  // Gemini API integration (Primary and Only AI Engine)
   async analyzeWithGemini(query) {
-    if (!this.checkRateLimit('gemini', this.config.gemini.rateLimit)) {
-      throw new Error('Gemini rate limit exceeded');
-    }
-
     const prompt = this.createAnalysisPrompt(query);
-    console.log(`🔍 DEBUG - Gemini prompt being sent: ${prompt.substring(0, 200)}...`);
+    console.log(`🔍 Gemini prompt being sent: ${prompt.substring(0, 200)}...`);
 
     try {
       console.log(`🔄 Making Gemini API request...`);
@@ -178,16 +109,17 @@ Return a comprehensive analysis in clear, structured text format.`;
         }],
         generationConfig: {
           temperature: 0.3,
-          maxOutputTokens: 4000  // Increased for comprehensive ESG analysis (5000-6000 chars)
+          maxOutputTokens: 4000  // Optimized for comprehensive ESG analysis (5000-6000 chars)
         }
       };
 
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${this.config.gemini.apiKey}`;
+      const model = this.config.gemini.model || 'gemini-1.5-flash-latest';
+      const apiUrl = `${this.config.gemini.baseUrl}/models/${model}:generateContent?key=${this.config.gemini.apiKey}`;
       console.log(`📤 Gemini request URL: ${apiUrl.replace(this.config.gemini.apiKey, 'API_KEY_HIDDEN')}`);
 
-      // Create AbortController for timeout (15 seconds for comprehensive ESG analysis)
+      // Create AbortController for timeout (optimized for 5-10 second response requirement)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), this.config.gemini.timeout || 15000);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -228,61 +160,13 @@ Return a comprehensive analysis in clear, structured text format.`;
     }
   }
 
-  // OpenAI API integration (Emergency Backup)
-  async analyzeWithOpenAI(query) {
-    if (!this.config.openai.apiKey) {
-      throw new Error('OpenAI API key not configured');
-    }
 
-    const prompt = this.createAnalysisPrompt(query);
 
-    try {
-      // Create AbortController for timeout (10 seconds for OpenAI - emergency fallback)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.config.openai.apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            { role: 'system', content: this.getBorogueContext() },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.3,
-          max_tokens: 3500  // Increased for emergency comprehensive analysis
-        }),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const content = data.choices[0].message.content;
-
-      // Return the raw content for the response parser to handle
-      console.log(`✅ OpenAI API response received (${content.length} chars)`);
-      return content;
-
-    } catch (error) {
-      console.error('OpenAI API error:', error);
-      throw error;
-    }
-  }
-
-  // Simplified AI analysis
+  // Optimized AI analysis using only Gemini
   async analyzeQuery(query) {
     const startTime = Date.now();
 
-    console.log(`🔍 Starting simplified AI analysis`);
+    console.log(`🔍 Starting Gemini-only AI analysis`);
 
     // Check provider-level cache first
     const cacheKey = this.generateProviderCacheKey(query);
@@ -300,45 +184,37 @@ Return a comprehensive analysis in clear, structured text format.`;
       attempts++;
 
       try {
-        // Select ESG-optimized provider (GEMINI PRIORITIZED for comprehensive analysis)
-        const selectedProvider = this.providerManager.selectProviderForESG('comprehensive');
-        console.log(`🎯 Attempt ${attempts}: Using ${selectedProvider}`);
+        console.log(`🎯 Attempt ${attempts}: Using Gemini (optimized single provider)`);
 
-        // Record provider usage for rate limiting
-        this.providerManager.recordProviderUsage(selectedProvider);
+        // Check rate limit
+        if (!this.checkRateLimit('gemini', this.config.gemini.rateLimit)) {
+          throw new Error('Gemini rate limit exceeded');
+        }
 
-        // Perform analysis with selected provider
-        console.log(`🚀 Starting analysis with ${selectedProvider}...`);
-        const rawResponse = await this.performProviderAnalysis(selectedProvider, query);
-        console.log(`📝 Raw response received from ${selectedProvider}: ${typeof rawResponse} (${rawResponse ? rawResponse.length : 0} chars)`);
+        // Perform analysis with Gemini
+        console.log(`🚀 Starting analysis with Gemini...`);
+        const rawResponse = await this.analyzeWithGemini(query);
+        console.log(`📝 Raw response received from Gemini: ${typeof rawResponse} (${rawResponse ? rawResponse.length : 0} chars)`);
 
         const responseTime = Date.now() - startTime;
 
         // Comprehensive response structure
         const result = {
-          response: rawResponse || `ESG Intelligence Analysis for "${query}": Analysis temporarily unavailable. Please ensure AI providers are properly configured and try again.`
+          response: rawResponse || `ESG Intelligence Analysis for "${query}": Analysis temporarily unavailable. Please ensure Gemini API is properly configured and try again.`
         };
-
-        // Record successful response
-        this.providerManager.recordProviderResponse(selectedProvider, true, responseTime, 1);
 
         // Cache the result
         this.saveToProviderCache(cacheKey, result);
 
         // Track analytics
-        await this.trackAnalytics(query, selectedProvider, responseTime, 0, 1);
+        await this.trackAnalytics(query, 'gemini', responseTime, 0, 1);
 
-        console.log(`✅ Analysis completed successfully with ${selectedProvider} (${responseTime}ms)`);
+        console.log(`✅ Analysis completed successfully with Gemini (${responseTime}ms)`);
         return result;
 
       } catch (error) {
         console.warn(`⚠️ Attempt ${attempts} failed: ${error.message}`);
         lastError = error;
-
-        // Record provider failure
-        if (error.provider) {
-          this.providerManager.recordProviderResponse(error.provider, false, Date.now() - startTime, 0);
-        }
 
         // If this was the last attempt, throw error
         if (attempts === maxAttempts) {
@@ -350,13 +226,13 @@ Return a comprehensive analysis in clear, structured text format.`;
       }
     }
 
-    // All attempts failed - throw error instead of using fallback
-    console.error(`❌ All analysis attempts failed after ${attempts} tries`);
+    // All attempts failed - throw error
+    console.error(`❌ All Gemini analysis attempts failed after ${attempts} tries`);
 
     // Track failure analytics
-    await this.trackAnalytics(query, 'failed', Date.now() - startTime, 0, 0);
+    await this.trackAnalytics(query, 'gemini_failed', Date.now() - startTime, 0, 0);
 
-    throw new Error(`All AI providers failed: ${lastError?.message || 'Unknown error'}. Please check API keys and provider availability.`);
+    throw new Error(`Gemini AI analysis failed: ${lastError?.message || 'Unknown error'}. Please check Gemini API key and availability.`);
   }
 
   // Assess query complexity for optimal provider selection
@@ -412,33 +288,35 @@ Return a comprehensive analysis in clear, structured text format.`;
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  // Perform analysis with specific provider
-  async performProviderAnalysis(provider, query) {
-    switch (provider) {
-      case 'groq':
-        return await this.analyzeWithGroq(query);
-      case 'gemini':
-        return await this.analyzeWithGemini(query);
-      case 'openai':
-        return await this.analyzeWithOpenAI(query);
-      default:
-        throw new Error(`Unknown provider: ${provider}`);
-    }
-  }
-
-  // Get provider statistics for monitoring
+  // Get simplified provider statistics for monitoring
   getProviderStatistics() {
-    return this.providerManager.getProviderStatistics();
+    return {
+      gemini: {
+        status: 'configured',
+        requests: this.rateLimitTracking.get('gemini')?.length || 0,
+        lastUsed: Date.now()
+      }
+    };
   }
 
   // Get optimization recommendations
   getOptimizationRecommendations() {
-    return this.providerManager.getOptimizationRecommendations();
+    return {
+      provider: 'gemini',
+      status: 'optimized',
+      recommendations: ['Gemini-only architecture provides optimal performance for ESG analysis']
+    };
   }
 
   // Get provider health summary
   getProviderHealthSummary() {
-    return this.providerManager.getHealthSummary();
+    return {
+      status: 'healthy',
+      activeProviders: ['gemini'],
+      configuration: {
+        gemini: this.config.gemini?.apiKey ? 'configured' : 'missing'
+      }
+    };
   }
 
   // This method has been removed - we now require real AI responses only

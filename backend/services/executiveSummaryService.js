@@ -46,6 +46,154 @@ class ExecutiveSummaryService {
     }
   }
 
+  // NEW: Generate streamlined executive summary for optimized processing
+  async generateStreamlinedExecutiveSummary(query, analyzedArticles, queryEnhancements) {
+    try {
+      console.log(`⚡ Generating streamlined executive summary for ${analyzedArticles.length} articles`);
+
+      // Quick categorization
+      const quickCategories = this.quickCategorizeArticles(analyzedArticles);
+
+      // Generate streamlined insights
+      const streamlinedInsights = this.generateStreamlinedInsights(analyzedArticles);
+
+      // Create simplified prompt for faster processing
+      const summaryPrompt = this.createStreamlinedSummaryPrompt(
+        query,
+        quickCategories,
+        streamlinedInsights,
+        queryEnhancements
+      );
+
+      // Generate AI summary with optimized timeout for Gemini
+      const aiSummary = await Promise.race([
+        this.aiService.analyzeQuery(summaryPrompt),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('AI summary timeout - Gemini response exceeded 15 seconds')), 15000) // 15 second timeout for Gemini
+        )
+      ]);
+
+      // Parse streamlined summary
+      const structuredSummary = this.parseStreamlinedSummary(aiSummary.response);
+
+      // Add insights
+      structuredSummary.insights = streamlinedInsights;
+      structuredSummary.categories = quickCategories;
+
+      console.log(`✅ Streamlined executive summary generated successfully`);
+      return structuredSummary;
+
+    } catch (error) {
+      console.error('❌ Error generating streamlined summary:', error);
+      return this.generateQuickFallbackSummary(query, analyzedArticles);
+    }
+  }
+
+  // Quick categorization for streamlined processing
+  quickCategorizeArticles(articles) {
+    return {
+      high_impact: articles.filter(a => ['CRITICAL', 'HIGH'].includes(a.impact_level)).length,
+      opportunities: articles.filter(a => a.impact_level === 'OPPORTUNITY').length,
+      regulatory: articles.filter(a => this.isRegulatoryContent(a)).length,
+      esg_focused: articles.filter(a => this.isESGContent(a)).length,
+      total: articles.length
+    };
+  }
+
+  // Generate streamlined insights
+  generateStreamlinedInsights(articles) {
+    const totalArticles = articles.length;
+    const avgRelevance = totalArticles > 0
+      ? Math.round(articles.reduce((sum, a) => sum + (a.relevance_score || 0), 0) / totalArticles)
+      : 0;
+
+    const highImpact = articles.filter(a => ['CRITICAL', 'HIGH'].includes(a.impact_level)).length;
+    const opportunities = articles.filter(a => a.impact_level === 'OPPORTUNITY').length;
+
+    return {
+      total_articles: totalArticles,
+      average_relevance: avgRelevance,
+      high_impact_count: highImpact,
+      opportunity_count: opportunities,
+      actionable_items: highImpact + opportunities,
+      confidence: avgRelevance >= 70 ? 'high' : avgRelevance >= 50 ? 'medium' : 'low'
+    };
+  }
+
+  // Create streamlined summary prompt
+  createStreamlinedSummaryPrompt(query, categories, insights, queryEnhancements) {
+    return `As Borouge's Chief Strategy Officer, provide a concise executive intelligence brief for immediate decision-making.
+
+QUERY: ${query}
+ARTICLES ANALYZED: ${insights.total_articles}
+HIGH IMPACT ITEMS: ${insights.high_impact_count}
+OPPORTUNITIES: ${insights.opportunity_count}
+AVERAGE RELEVANCE: ${insights.average_relevance}%
+
+Provide a JSON response with this structure:
+
+{
+  "executive_brief": "2-3 sentence strategic summary highlighting the most critical findings and immediate implications for Borouge's $8.5B business",
+  "key_insights": [
+    "Most critical insight requiring immediate attention",
+    "Key strategic opportunity identified",
+    "Important regulatory or competitive development"
+  ],
+  "immediate_priorities": [
+    "Top priority action for next 30 days",
+    "Second priority strategic initiative",
+    "Third priority monitoring requirement"
+  ],
+  "business_impact": "Brief assessment of potential impact on revenue, operations, or competitive position",
+  "urgency_level": "HIGH/MEDIUM/LOW",
+  "confidence_assessment": "Assessment confidence level and rationale"
+}
+
+Focus on actionable insights for petrochemical industry leadership.`;
+  }
+
+  // Parse streamlined summary
+  parseStreamlinedSummary(aiResponse) {
+    try {
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const summary = JSON.parse(jsonMatch[0]);
+        return {
+          executive_brief: summary.executive_brief || 'Strategic analysis completed - detailed review recommended',
+          key_insights: summary.key_insights || ['Analysis pending', 'Review required', 'Assessment needed'],
+          immediate_priorities: summary.immediate_priorities || ['Conduct detailed analysis', 'Review strategic implications', 'Monitor developments'],
+          business_impact: summary.business_impact || 'Business impact assessment pending',
+          urgency_level: summary.urgency_level || 'MEDIUM',
+          confidence_assessment: summary.confidence_assessment || 'Medium confidence - additional analysis recommended'
+        };
+      }
+    } catch (error) {
+      console.error('❌ Error parsing streamlined summary:', error);
+    }
+
+    return this.generateQuickFallbackSummary();
+  }
+
+  // Generate quick fallback summary
+  generateQuickFallbackSummary(query = '', articles = []) {
+    return {
+      executive_brief: `Analysis of ${articles.length} articles for "${query}" completed. Strategic review recommended for comprehensive assessment.`,
+      key_insights: [
+        'Industry developments identified requiring strategic assessment',
+        'Competitive landscape changes detected',
+        'Regulatory and ESG implications noted'
+      ],
+      immediate_priorities: [
+        'Conduct detailed strategic analysis',
+        'Assess competitive positioning implications',
+        'Review regulatory compliance requirements'
+      ],
+      business_impact: 'Business impact assessment pending detailed analysis',
+      urgency_level: 'MEDIUM',
+      confidence_assessment: 'Medium confidence - comprehensive analysis recommended for strategic decision-making'
+    };
+  }
+
   // Categorize articles by impact level and business relevance
   categorizeArticles(articles) {
     const categories = {

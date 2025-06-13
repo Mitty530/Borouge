@@ -270,16 +270,15 @@ export const smartSearchService = {
     console.log('🔍 Starting search for:', query);
 
     try {
-      // Try to get real data first
+      // Always try to get real data from backend first
       const realData = await fetchRealData(query);
 
       if (realData && realData.success) {
-        // Transform backend response to match our expected format
         console.log('✅ Using real backend data');
         console.log('📊 Backend response structure:', Object.keys(realData));
         console.log('📊 Articles found:', realData.articles?.length || 0);
-        console.log('📊 Summary length:', realData.comprehensiveExecutiveSummary?.length || 0);
 
+        // Transform backend response to match frontend expectations
         return {
           summary: realData.comprehensiveExecutiveSummary || realData.summary || `Analysis of ${realData.articles?.length || 0} articles for: ${query}`,
           articles: realData.articles || [],
@@ -294,7 +293,14 @@ export const smartSearchService = {
             averageRelevance: realData.articles?.length > 0
               ? Math.round(realData.articles.reduce((sum, article) => sum + (article.relevance_score || 0), 0) / realData.articles.length)
               : 0,
-            overallConfidence: realData.analytics?.overallConfidence || 'medium'
+            overallConfidence: realData.analytics?.overallConfidence || 'medium',
+            actionableInsights: realData.analytics?.actionableInsights || 0,
+            strategicOpportunities: realData.analytics?.strategicOpportunities || 0,
+            urgentAttentionRequired: realData.analytics?.urgentAttentionRequired || 0
+          },
+          executiveSummary: realData.executiveSummary || {
+            headline: `ESG Intelligence Analysis for "${query}"`,
+            nextSteps: ['Monitor regulatory developments', 'Assess competitive positioning', 'Evaluate strategic opportunities']
           },
           metadata: {
             query,
@@ -307,38 +313,28 @@ export const smartSearchService = {
         };
       }
 
-      // If backend returns 0 articles or fails, use enhanced mock data with backend AI analysis
-      if (realData && realData.success && realData.comprehensiveExecutiveSummary) {
-        console.log('📊 Using hybrid approach: backend AI analysis + mock articles');
-        const mockResponse = generateMockResponse(query);
+      // If backend fails, show error instead of mock data (production approach)
+      console.error('❌ Backend unavailable - showing service unavailable message');
+      throw new Error('ESG Intelligence service is currently unavailable. Please try again later.');
 
-        // Use backend's AI analysis but with mock articles for demonstration
-        return {
-          ...mockResponse,
-          comprehensiveExecutiveSummary: realData.comprehensiveExecutiveSummary,
-          analysis: realData.analysis || mockResponse.analysis,
-          metadata: {
-            ...mockResponse.metadata,
-            source: 'hybrid',
-            backendAnalysis: true,
-            note: 'Using AI analysis from backend with mock articles for demonstration'
-          }
-        };
-      }
-
-      // Fallback to pure mock data
-      console.log('📊 Using enhanced mock data');
-      const response = generateMockResponse(query);
-      response.metadata.source = 'mock';
-      return response;
     } catch (error) {
       console.error('Smart search service error:', error);
-      // Even on error, provide mock data for demonstration
-      console.log('📊 Using mock data due to service error');
-      const response = generateMockResponse(query);
-      response.metadata.source = 'mock_fallback';
-      response.metadata.error = error.message;
-      return response;
+
+      // Return error response instead of mock data for production
+      return {
+        success: false,
+        error: {
+          message: error.message || 'ESG Intelligence service is currently unavailable',
+          details: 'The backend service is not responding. Please check your connection and try again.',
+          type: 'service_unavailable',
+          timestamp: new Date().toISOString()
+        },
+        metadata: {
+          query,
+          source: 'error',
+          note: 'Production system configured to show errors when backend is unavailable'
+        }
+      };
     }
   }
 };
