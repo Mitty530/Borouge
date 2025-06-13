@@ -1,4 +1,4 @@
-// Vercel Serverless Function for ESG Intelligence
+// Vercel Serverless Function for ESG Smart Search
 const { createClient } = require('@supabase/supabase-js');
 
 // Use built-in fetch if available (Node.js 18+), otherwise use node-fetch
@@ -10,8 +10,11 @@ const supabase = createClient(
   process.env.VITE_SUPABASE_ANON_KEY
 );
 
-// ESG Intelligence Service (simplified for serverless)
-class ESGIntelligenceService {
+// Import the ESG Intelligence Service class
+const { createClient: createSupabaseClient } = require('@supabase/supabase-js');
+
+// ESG Smart Search Service (simplified for serverless)
+class ESGSmartSearchService {
   constructor() {
     this.geminiApiKey = process.env.GEMINI_API_KEY;
     this.gnewsApiKey = process.env.GNEWS_API_KEY;
@@ -19,48 +22,17 @@ class ESGIntelligenceService {
     this.gnewsBaseUrl = process.env.GNEWS_BASE_URL || "https://gnews.io/api/v4";
   }
 
-  async processQuery(query) {
-    const startTime = Date.now();
-
-    try {
-      // Step 1: Fetch news articles
-      const articles = await this.fetchNewsArticles(query);
-
-      // Step 2: Generate AI analysis
-      const analysis = await this.generateGeminiAnalysis(query, articles);
-
-      // Step 3: Cache the result
-      await this.cacheResult(query, analysis);
-
-      return {
-        success: true,
-        query,
-        response: analysis,
-        responseTime: Date.now() - startTime,
-        cached: false,
-        timestamp: new Date().toISOString(),
-        metadata: {
-          source: 'gemini_ai',
-          articlesAnalyzed: articles.length
-        }
-      };
-    } catch (error) {
-      console.error('ESG Intelligence processing error:', error);
-      throw error;
-    }
-  }
-
   async processSmartSearch(query) {
     const startTime = Date.now();
-
+    
     try {
       // Step 1: Fetch news articles
       const articles = await this.fetchNewsArticles(query);
-
+      
       // Step 2: Generate executive summary and analytics
       const executiveSummary = await this.generateExecutiveSummary(query, articles);
       const analytics = this.generateAnalytics(articles);
-
+      
       // Step 3: Process articles with impact levels
       const processedArticles = articles.map((article, index) => ({
         id: index + 1,
@@ -74,7 +46,7 @@ class ESGIntelligenceService {
         impactLevel: this.determineImpactLevel(article),
         summary: article.description
       }));
-
+      
       return {
         success: true,
         query,
@@ -114,94 +86,6 @@ class ESGIntelligenceService {
     }
   }
 
-  async generateGeminiAnalysis(query, articles) {
-    const prompt = `
-As an ESG intelligence expert, analyze the following query and news articles to provide comprehensive insights:
-
-Query: "${query}"
-
-News Articles:
-${articles.map((article, index) => `
-${index + 1}. Title: ${article.title}
-   Description: ${article.description}
-   Published: ${article.publishedAt}
-   Source: ${article.source.name}
-`).join('\n')}
-
-Please provide a comprehensive ESG analysis including:
-1. Executive Summary
-2. Key ESG Impacts and Trends
-3. Strategic Recommendations
-4. Risk Assessment
-5. Opportunities Identified
-
-Format your response as a professional executive report without using markdown formatting (no ** or * symbols).
-`;
-
-    try {
-      const response = await fetch(
-        `${this.geminiBaseUrl}/models/gemini-1.5-flash-latest:generateContent?key=${this.geminiApiKey}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            contents: [{
-              parts: [{
-                text: prompt
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 2048,
-            }
-          })
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.candidates[0]?.content?.parts[0]?.text || 'Analysis could not be generated.';
-    } catch (error) {
-      console.error('Gemini analysis error:', error);
-      return 'ESG analysis is temporarily unavailable. Please try again later.';
-    }
-  }
-
-  async cacheResult(query, analysis) {
-    try {
-      await supabase
-        .from('esg_intelligence_cache')
-        .upsert({
-          query_hash: this.hashQuery(query),
-          query_text: query,
-          response: analysis,
-          created_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          hit_count: 1
-        });
-    } catch (error) {
-      console.error('Cache error:', error);
-    }
-  }
-
-  hashQuery(query) {
-    // Simple hash function for query caching
-    let hash = 0;
-    for (let i = 0; i < query.length; i++) {
-      const char = query.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return hash.toString();
-  }
-
   async generateExecutiveSummary(query, articles) {
     const prompt = `
 Based on the following news articles about "${query}", generate a comprehensive executive summary:
@@ -235,10 +119,10 @@ Format as JSON.
       );
 
       if (!response.ok) throw new Error(`Gemini API error: ${response.status}`);
-
+      
       const data = await response.json();
       const text = data.candidates[0]?.content?.parts[0]?.text || '{}';
-
+      
       try {
         return JSON.parse(text);
       } catch {
@@ -272,7 +156,7 @@ Format as JSON.
   determineImpactLevel(article) {
     const title = article.title.toLowerCase();
     const description = article.description.toLowerCase();
-
+    
     if (title.includes('critical') || title.includes('urgent') || description.includes('immediate')) {
       return 'high';
     } else if (title.includes('opportunity') || description.includes('growth')) {
@@ -290,7 +174,7 @@ Format as JSON.
       "Develop stakeholder engagement strategy",
       "Review supply chain sustainability practices"
     ];
-
+    
     return items.slice(0, Math.min(articles.length + 1, 4));
   }
 }
@@ -320,7 +204,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { query, type } = req.body;
+    const { query } = req.body;
 
     // Validate request
     if (!query || typeof query !== 'string' || query.trim().length === 0) {
@@ -343,26 +227,20 @@ module.exports = async (req, res) => {
       });
     }
 
-    // Process the query based on type
-    const esgService = new ESGIntelligenceService();
-    let result;
-
-    if (type === 'smart-search') {
-      result = await esgService.processSmartSearch(query);
-    } else {
-      result = await esgService.processQuery(query);
-    }
+    // Process the smart search
+    const smartSearchService = new ESGSmartSearchService();
+    const result = await smartSearchService.processSmartSearch(query);
 
     res.status(200).json(result);
 
   } catch (error) {
-    console.error('ESG Intelligence API error:', error);
+    console.error('ESG Smart Search API error:', error);
     
     res.status(500).json({
       success: false,
       error: {
         code: 'PROCESSING_ERROR',
-        message: 'Failed to process ESG intelligence query',
+        message: 'Failed to process smart search query',
         timestamp: new Date().toISOString()
       }
     });
