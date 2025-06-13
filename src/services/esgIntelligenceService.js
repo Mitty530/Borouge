@@ -7,7 +7,7 @@
 class ESGIntelligenceService {
   constructor() {
     this.baseURL = process.env.NODE_ENV === 'production'
-      ? '' // Use relative URLs in production
+      ? '' // Use relative URLs in production (Vercel serverless functions)
       : 'http://localhost:3001'; // Direct backend URL in development
   }
 

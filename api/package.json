@@ -1,0 +1,12 @@
+{
+  "name": "borouge-esg-api",
+  "version": "1.0.0",
+  "description": "Serverless API functions for Borouge ESG Intelligence Platform",
+  "main": "index.js",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

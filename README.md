@@ -2,6 +2,34 @@
 
 A comprehensive, production-ready ESG intelligence platform for Borouge's strategic business intelligence needs.
 
+## 🚀 Quick Deployment to Vercel
+
+### Prerequisites
+- GitHub repository with your code
+- Vercel account
+- All API keys ready (see environment variables below)
+
+### Deploy Now
+1. **Push to GitHub** (if not already done)
+2. **Deploy to Vercel**: [Import Project](https://vercel.com/new)
+3. **Set Environment Variables**: Upload `vercel.env` or copy-paste variables
+4. **Test Deployment**: Use the test script provided
+
+### Environment Variables for Vercel
+Run this command to get formatted environment variables:
+```bash
+node format-env-for-vercel.js
+```
+
+Or manually copy from `vercel.env` file to Vercel dashboard.
+
+### Test Your Deployment
+```bash
+node test-vercel-deployment.js https://your-app.vercel.app
+```
+
+📖 **Full deployment guide**: See [VERCEL_DEPLOYMENT_GUIDE.md](./VERCEL_DEPLOYMENT_GUIDE.md)
+
 ## 📋 Project Overview
 
 This platform provides AI-powered ESG intelligence analysis specifically tailored for Borouge's petrochemical operations, regulatory compliance, and competitive positioning in global markets.
