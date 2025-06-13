@@ -139,7 +139,7 @@ class ESGIntelligenceService {
    */
   async checkHealth() {
     try {
-      const response = await fetch(`${this.baseURL}/health`);
+      const response = await fetch(`${this.baseURL}/api/health`);
       const data = await response.json();
       return data;
     } catch (error) {
