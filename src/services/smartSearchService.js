@@ -6,9 +6,8 @@
 
 class SmartSearchService {
   constructor() {
-    this.baseURL = process.env.NODE_ENV === 'production'
-      ? '' // Use relative URLs in production
-      : 'http://localhost:3001'; // Direct backend URL in development
+    // Always use Vercel deployment for APIs since we don't have a local backend
+    this.baseURL = 'https://borouge.vercel.app';
   }
 
   /**

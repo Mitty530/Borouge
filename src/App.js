@@ -24,7 +24,7 @@ function App() {
 
   const checkBackendHealth = async () => {
     try {
-      const response = await fetch('/api/health');
+      const response = await fetch('https://borouge.vercel.app/api/health');
       const data = await response.json();
       setBackendHealth(data);
       console.log('✅ Backend health check:', data);
