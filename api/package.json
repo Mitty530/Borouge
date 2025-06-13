@@ -4,7 +4,8 @@
   "description": "Serverless API functions for Borouge ESG Intelligence Platform",
   "main": "index.js",
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.8"
+    "@supabase/supabase-js": "^2.49.8",
+    "node-fetch": "^3.3.2"
   },
   "engines": {
     "node": ">=18.0.0"

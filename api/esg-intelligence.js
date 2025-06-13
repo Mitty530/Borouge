@@ -1,5 +1,6 @@
 // Vercel Serverless Function for ESG Intelligence
 const { createClient } = require('@supabase/supabase-js');
+const fetch = require('node-fetch');
 
 // Initialize Supabase client
 const supabase = createClient(
