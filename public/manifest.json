@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Borouge ESG",
+  "name": "Borouge ESG Intelligence Platform",
+  "description": "Advanced ESG intelligence and analysis for the petrochemical industry",
   "icons": [
     {
       "src": "favicon.ico",
@@ -21,5 +22,6 @@
   "start_url": ".",
   "display": "standalone",
   "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "background_color": "#ffffff",
+  "categories": ["business", "productivity", "utilities"]
 }

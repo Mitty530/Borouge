@@ -1,445 +1,224 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Users, Bookmark, Menu, X } from 'lucide-react';
 import { Analytics } from '@vercel/analytics/react';
-import ConversationView from './components/ConversationView';
-import QueryGuidanceModal from './components/QueryGuidanceModal';
-import { queryValidationService } from './services/queryValidationService';
-import { analyticsService } from './services/analyticsService';
-import { injectNuclearCSS } from './nuclear-css-injection';
-import { autoVerifySizing } from './size-verification';
 import './App.css';
-import './responsive-fixes.css';
-import './vercel-deployment-fixes.css';
-import './professional-normalization.css';
-import './css-variables-override.css';
-import './final-size-enforcement.css';
+import SearchInterface from './components/SearchInterface';
+import ResultsDisplay from './components/ResultsDisplay';
+import ErrorBoundary from './components/ErrorBoundary';
+import LoadingSpinner from './components/LoadingSpinner';
+import { esgIntelligenceService } from './services/esgIntelligenceService';
+import { smartSearchService } from './services/smartSearchService';
+import { queryValidationService } from './services/queryValidationService';
 
 function App() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [conversations, setConversations] = useState([]);
-  const [currentView, setCurrentView] = useState('search'); // 'search' or 'conversation'
-  const [activeQuery, setActiveQuery] = useState('');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showGuidanceModal, setShowGuidanceModal] = useState(false);
-  const [validationResult, setValidationResult] = useState(null);
+  const [currentQuery, setCurrentQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchMode, setSearchMode] = useState('intelligence'); // 'intelligence' or 'smart-search'
+  const [backendHealth, setBackendHealth] = useState(null);
 
-  // Nuclear CSS injection and size verification on component mount
+  // Check backend health on component mount
   useEffect(() => {
-    injectNuclearCSS();
-
-    // Track page view and session start
-    analyticsService.trackFeatureUsage('app', 'page_view');
-    analyticsService.trackEngagement('page_view', 0, {
-      userAgent: navigator.userAgent,
-      viewport: `${window.innerWidth}x${window.innerHeight}`
-    });
-
-    // Re-inject after a short delay to ensure it overrides everything
-    const timer = setTimeout(() => {
-      injectNuclearCSS();
-      // Verify sizing after injection
-      autoVerifySizing();
-    }, 500);
-
-    // Track session metrics on page unload
-    const handleBeforeUnload = () => {
-      analyticsService.trackSessionMetrics();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      analyticsService.trackSessionMetrics();
-    };
+    checkBackendHealth();
   }, []);
 
-  // ESG-focused suggestion chips for Borouge
-  const suggestionChips = [
-    'EU plastic regulations 2024',
-    'CBAM carbon border adjustment',
-    'Circular economy packaging',
-    'SABIC sustainability strategy',
-    'Petrochemical market trends',
-    'ESG reporting requirements',
-    'Renewable feedstock adoption',
-    'Carbon footprint reduction'
-  ];
+  const checkBackendHealth = async () => {
+    try {
+      const response = await fetch('/health');
+      const data = await response.json();
+      setBackendHealth(data);
+      console.log('✅ Backend health check:', data);
+    } catch (error) {
+      console.error('❌ Backend health check failed:', error);
+      setBackendHealth({ status: 'error', message: error.message });
+    }
+  };
 
-  const handleSearch = (query) => {
-    if (!query || !query.trim()) {
+  const handleSearch = async (query) => {
+    if (!query.trim()) {
+      setError('Please enter a search query');
       return;
     }
 
-    // Validate the query
+    // Validate query for ESG relevance
     const validation = queryValidationService.validateQuery(query);
-
     if (!validation.isValid) {
-      // Track validation failure
-      analyticsService.trackValidationFailure(query, validation.reason, validation.suggestions);
-      analyticsService.trackModalInteraction('guidance', 'open', {
-        reason: validation.reason,
-        suggestionsCount: validation.suggestions?.length || 0
+      setError({
+        type: 'validation',
+        message: validation.message,
+        suggestions: validation.suggestions
       });
-
-      // Show guidance modal for invalid queries
-      setValidationResult(validation);
-      setShowGuidanceModal(true);
       return;
     }
 
-    // Track successful search
-    analyticsService.trackSearch(query, true);
-    analyticsService.trackFeatureUsage('search', 'submit', {
-      queryLength: query.length,
-      relevanceScore: validation.relevanceScore
-    });
+    setCurrentQuery(query);
+    setIsLoading(true);
+    setError(null);
+    setSearchResults(null);
 
-    // Query is valid, proceed with search
-    setActiveQuery(query);
-    setCurrentView('conversation');
-    setSearchQuery('');
-    setSidebarOpen(false);
+    try {
+      let results;
+      
+      if (searchMode === 'intelligence') {
+        console.log('🔍 Performing ESG Intelligence search...');
+        results = await esgIntelligenceService.searchESGIntelligence(query);
+      } else {
+        console.log('🔍 Performing Smart Search...');
+        results = await smartSearchService.performSmartSearch(query);
+      }
 
-    // Add to conversations
-    const newConversation = {
-      id: Date.now(),
-      query: query,
-      timestamp: new Date()
-    };
-    setConversations([newConversation, ...conversations]);
-  };
-
-  const handleBackToSearch = () => {
-    setCurrentView('search');
-    setActiveQuery('');
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSearch(searchQuery);
+      if (results.success) {
+        setSearchResults(results);
+        console.log(`✅ Search completed in ${results.responseTime}ms`);
+      } else {
+        throw new Error(results.error?.message || 'Search failed');
+      }
+    } catch (error) {
+      console.error('❌ Search error:', error);
+      setError({
+        type: 'search',
+        message: error.message || 'An error occurred during search',
+        details: error.details || null
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
+  const handleClearResults = () => {
+    setSearchResults(null);
+    setCurrentQuery('');
+    setError(null);
   };
 
-  const selectConversation = (conversation) => {
-    setActiveQuery(conversation.query);
-    setCurrentView('conversation');
-    setSidebarOpen(false);
-  };
-
-  const handleCloseGuidanceModal = () => {
-    // Track modal close
-    analyticsService.trackModalInteraction('guidance', 'close');
-
-    setShowGuidanceModal(false);
-    setValidationResult(null);
-  };
-
-  const handleSuggestionClick = (suggestion) => {
-    // Track suggestion click
-    analyticsService.trackSuggestionClick(
-      suggestion,
-      validationResult?.suggestions?.find(cat =>
-        cat.suggestions.includes(suggestion)
-      )?.category || 'unknown',
-      searchQuery
-    );
-    analyticsService.trackModalInteraction('guidance', 'suggestion_click', { suggestion });
-
-    setSearchQuery(suggestion);
-    setShowGuidanceModal(false);
-    setValidationResult(null);
-    // Automatically search with the suggestion
-    handleSearch(suggestion);
+  const handleModeChange = (mode) => {
+    setSearchMode(mode);
+    setSearchResults(null);
+    setError(null);
   };
 
   return (
-    <div className="app oversized-fix">
-      {/* Mobile Menu Button */}
-      <motion.button
-        className="mobile-menu-btn"
-        onClick={toggleSidebar}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        style={{
-          position: 'fixed',
-          top: '20px',
-          left: '20px',
-          zIndex: 1001,
-          display: 'none',
-          width: '44px',
-          height: '44px',
-          background: 'var(--background-white)',
-          border: '1px solid var(--border-light)',
-          borderRadius: 'var(--radius-lg)',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: 'var(--shadow-md)',
-          cursor: 'pointer'
-        }}
-      >
-        {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-      </motion.button>
-
-      {/* Sidebar */}
-      <motion.div
-        className={`sidebar ${sidebarOpen ? 'open' : ''}`}
-        initial={{ x: -320 }}
-        animate={{ x: 0 }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-      >
-        {/* Logo */}
-        <motion.div
-          className="logo"
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-        >
-          <motion.div
-            className="logo-icon"
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.5 }}
-          >
-            B
-          </motion.div>
-          <span className="logo-text">Borouge ESG</span>
-        </motion.div>
-
-        {/* New Search Button */}
-        <motion.button
-          className="new-search-btn"
-          onClick={handleBackToSearch}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <MessageSquare size={18} />
-          Start new search
-        </motion.button>
-
-
-
-        {/* Navigation */}
-        <motion.div
-          className="nav-section"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <motion.div
-            className="nav-item"
-            whileHover={{ x: 4 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <Users className="nav-icon" />
-              All Intelligence
-            </div>
-            <motion.span
-              className="nav-count"
-              key={conversations.length}
-              initial={{ scale: 1.2 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.2 }}
-            >
-              {conversations.length}
-            </motion.span>
-          </motion.div>
-          <motion.div
-            className="nav-item"
-            whileHover={{ x: 4 }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <Bookmark className="nav-icon" />
-              Saved
-            </div>
-            <span className="nav-count">0</span>
-          </motion.div>
-        </motion.div>
-
-        {/* Recent Chats */}
-        <motion.div
-          className="recent-chats"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          <h3>Recent Chats</h3>
-          <AnimatePresence>
-            {conversations.length === 0 ? (
-              <motion.div
-                className="no-chats"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                No saved chats yet.
-              </motion.div>
-            ) : (
-              <div>
-                {conversations.slice(0, 5).map((conversation, index) => (
-                  <motion.div
-                    key={conversation.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ delay: index * 0.1 }}
-                    onClick={() => selectConversation(conversation)}
-                    style={{
-                      padding: '12px 16px',
-                      fontSize: '14px',
-                      color: 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      borderRadius: 'var(--radius-md)',
-                      marginBottom: '4px',
-                      transition: 'all 0.2s ease'
-                    }}
-                    whileHover={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                      x: 4,
-                      color: 'var(--text-primary)'
-                    }}
-                  >
-                    {conversation.query}
-                  </motion.div>
-                ))}
+    <ErrorBoundary>
+      <div className="App">
+        <Analytics />
+        
+        {/* Header */}
+        <header className="app-header">
+          <div className="container">
+            <h1 className="app-title">The ESG Intelligence Engine</h1>
+            <p className="app-subtitle">
+              Advanced ESG intelligence and analysis for the petrochemical industry
+            </p>
+            
+            {/* Backend Status Indicator */}
+            {backendHealth && (
+              <div className={`backend-status ${backendHealth.status === 'healthy' ? 'healthy' : 'error'}`}>
+                <span className="status-indicator"></span>
+                Backend: {backendHealth.status === 'healthy' ? 'Connected' : 'Error'}
               </div>
             )}
-          </AnimatePresence>
-        </motion.div>
-      </motion.div>
+          </div>
+        </header>
 
-      {/* Main Content */}
-      <AnimatePresence mode="wait">
-        {currentView === 'search' ? (
-          <motion.div
-            key="search"
-            className="main-content"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-          >
-            {/* Header */}
-            <motion.div
-              className="header"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-            >
-              <motion.h1
-                className="title clean-title main-title"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.6 }}
-                whileHover={{
-                  scale: 1.01
-                }}
-              >
-                The ESG Intelligence Engine
-              </motion.h1>
-            </motion.div>
+        {/* Main Content */}
+        <main className="app-main">
+          <div className="container">
+            
+            {/* Search Interface */}
+            <SearchInterface
+              onSearch={handleSearch}
+              isLoading={isLoading}
+              searchMode={searchMode}
+              onModeChange={handleModeChange}
+              currentQuery={currentQuery}
+            />
 
-            {/* Search Container */}
-            <motion.div
-              className="search-container"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.6 }}
-            >
-              <motion.div
-                className="search-box modern-search"
-                whileHover={{ scale: 1.002 }}
-                transition={{ duration: 0.2 }}
-              >
-                <div className="search-input-container">
-                  <input
-                    type="text"
-                    className="search-input modern-input"
-                    placeholder="ESG regulations affecting Borouge operations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                  />
-                  <motion.button
-                    className={`search-submit-btn ${searchQuery.trim() ? 'active' : 'inactive'}`}
-                    onClick={() => handleSearch(searchQuery)}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    animate={{
-                      backgroundColor: searchQuery.trim() ? '#0066cc' : '#9ca3af'
-                    }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    ↑
-                  </motion.button>
+            {/* Error Display */}
+            {error && (
+              <div className="error-container">
+                <div className="error-message">
+                  <h3>⚠️ {error.type === 'validation' ? 'Query Validation Error' : 'Search Error'}</h3>
+                  <p>{error.message}</p>
+                  
+                  {error.suggestions && (
+                    <div className="error-suggestions">
+                      <h4>Try searching for:</h4>
+                      <ul>
+                        {error.suggestions.map((suggestion, index) => (
+                          <li key={index}>
+                            <button 
+                              className="suggestion-button"
+                              onClick={() => handleSearch(suggestion)}
+                            >
+                              {suggestion}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            )}
 
-            {/* Suggestion Chips */}
-            <motion.div
-              className="suggestions"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.6 }}
-            >
-              {suggestionChips.map((chip, index) => (
-                <motion.button
-                  key={index}
-                  className="suggestion-chip"
-                  onClick={() => {
-                    // Track suggestion chip click
-                    analyticsService.trackFeatureUsage('suggestion_chip', 'click', {
-                      suggestion: chip,
-                      position: index
-                    });
-                    handleSearch(chip);
-                  }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 + index * 0.05, duration: 0.4 }}
-                  whileHover={{
-                    scale: 1.05,
-                    transition: { duration: 0.2 }
-                  }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {chip}
-                </motion.button>
-              ))}
-            </motion.div>
-          </motion.div>
-        ) : (
-          <ConversationView
-            key="conversation"
-            initialQuery={activeQuery}
-            onBack={handleBackToSearch}
-          />
-        )}
-      </AnimatePresence>
+            {/* Loading Spinner */}
+            {isLoading && (
+              <div className="loading-container">
+                <LoadingSpinner />
+                <p>Analyzing ESG intelligence...</p>
+              </div>
+            )}
 
-      {/* Query Guidance Modal */}
-      <QueryGuidanceModal
-        isOpen={showGuidanceModal}
-        onClose={handleCloseGuidanceModal}
-        validationResult={validationResult}
-        onSuggestionClick={handleSuggestionClick}
-      />
+            {/* Results Display */}
+            {searchResults && !isLoading && (
+              <ResultsDisplay
+                results={searchResults}
+                query={currentQuery}
+                searchMode={searchMode}
+                onClear={handleClearResults}
+              />
+            )}
 
-      {/* Vercel Analytics */}
-      <Analytics />
-    </div>
+            {/* Welcome Message */}
+            {!searchResults && !isLoading && !error && (
+              <div className="welcome-container">
+                <div className="welcome-card">
+                  <h2>Welcome to the ESG Intelligence Engine</h2>
+                  <p>
+                    Get instant access to comprehensive ESG intelligence and analysis 
+                    tailored for the petrochemical industry. Our AI-powered platform 
+                    provides real-time insights on sustainability, governance, and 
+                    environmental regulations.
+                  </p>
+                  
+                  <div className="feature-grid">
+                    <div className="feature-item">
+                      <h3>🔍 ESG Intelligence</h3>
+                      <p>Comprehensive AI analysis of ESG topics and regulations</p>
+                    </div>
+                    <div className="feature-item">
+                      <h3>📰 Smart Search</h3>
+                      <p>Real-time news analysis with executive summaries</p>
+                    </div>
+                    <div className="feature-item">
+                      <h3>⚡ Fast Results</h3>
+                      <p>Get insights in 5-10 seconds with Gemini AI</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="app-footer">
+          <div className="container">
+            <p>&copy; 2024 Borouge ESG Intelligence Platform. All rights reserved.</p>
+          </div>
+        </footer>
+      </div>
+    </ErrorBoundary>
   );
 }
 

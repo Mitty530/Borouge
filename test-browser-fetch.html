@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Frontend → Backend API Test</h1>
+    <p>This page tests if the frontend can communicate with the backend API.</p>
+    
+    <div>
+        <button onclick="testHealthCheck()">Test Health Check</button>
+        <button onclick="testESGIntelligence()">Test ESG Intelligence</button>
+        <button onclick="testSmartSearch()">Test Smart Search</button>
+        <button onclick="clearResults()">Clear Results</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:3001';
+        
+        function addResult(type, title, content) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${content}</pre>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+        
+        async function testHealthCheck() {
+            addResult('info', '🔍 Testing Health Check...', 'Making request to /health');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                addResult('success', '✅ Health Check Success', JSON.stringify(data, null, 2));
+                
+            } catch (error) {
+                addResult('error', '❌ Health Check Failed', `Error: ${error.message}\n\nThis indicates a connection problem between frontend and backend.`);
+            }
+        }
+        
+        async function testESGIntelligence() {
+            addResult('info', '🔍 Testing ESG Intelligence...', 'Making request to /api/esg-intelligence');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/esg-intelligence`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Request-ID': `test_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    },
+                    body: JSON.stringify({
+                        query: 'carbon emissions reduction strategies'
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                addResult('success', '✅ ESG Intelligence Success', 
+                    `Query: "${data.query}"\nResponse Time: ${data.responseTime}ms\nCached: ${data.cached}\nResponse Length: ${data.response?.length || 0} chars`);
+                
+            } catch (error) {
+                addResult('error', '❌ ESG Intelligence Failed', `Error: ${error.message}\n\nThis is the same error the React app is experiencing.`);
+            }
+        }
+        
+        async function testSmartSearch() {
+            addResult('info', '🔍 Testing Smart Search...', 'Making request to /api/esg-smart-search');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/esg-smart-search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Request-ID': `smart_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    },
+                    body: JSON.stringify({
+                        query: 'renewable energy transition petrochemical industry'
+                    }),
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                addResult('success', '✅ Smart Search Success', 
+                    `Query: "${data.query}"\nResponse Time: ${data.responseTime}ms\nArticles: ${data.articles?.length || 0}\nCached: ${data.cached}`);
+                
+            } catch (error) {
+                addResult('error', '❌ Smart Search Failed', `Error: ${error.message}`);
+            }
+        }
+        
+        // Auto-run health check on page load
+        window.addEventListener('load', () => {
+            addResult('info', '🚀 Page Loaded', 'Ready to test frontend-backend communication');
+            setTimeout(testHealthCheck, 1000);
+        });
+    </script>
+</body>
+</html>

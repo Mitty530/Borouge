@@ -87,6 +87,11 @@ console.log('🤖 ESG Intelligence Service initialized');
 // CORS Configuration for frontend integration
 const corsOptions = {
   origin: function (origin, callback) {
+    // In development mode, allow all origins for easier testing
+    if (config.nodeEnv === 'development') {
+      return callback(null, true);
+    }
+
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
 
@@ -97,11 +102,6 @@ const corsOptions = {
       'https://borouge-esg-frontend.vercel.app', // Production frontend (example)
     ];
 
-    // In development, allow all localhost origins
-    if (config.nodeEnv === 'development' && origin.includes('localhost')) {
-      return callback(null, true);
-    }
-
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
@@ -111,7 +111,7 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Request-ID']
 };
 
 app.use(cors(corsOptions));
@@ -318,6 +318,23 @@ async function trackError(error, req) {
 // ============================================================================
 // BASIC ROUTES & HEALTH CHECKS
 // ============================================================================
+
+// Root route for frontend requests
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Borouge ESG Intelligence API Server',
+    version: '1.0.0',
+    status: 'operational',
+    endpoints: {
+      health: '/health',
+      esgIntelligence: '/api/esg-intelligence',
+      smartSearch: '/api/esg-smart-search',
+      suggestedQueries: '/api/suggested-queries'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
 
 // Enhanced health check endpoint with ESG service status
 app.get('/health', asyncHandler(async (req, res) => {

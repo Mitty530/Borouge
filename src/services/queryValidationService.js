@@ -1,316 +1,310 @@
-// Query Validation Service for Borouge ESG Intelligence Platform
-// Validates user queries to ensure they are meaningful and ESG-related
+/**
+ * Query Validation Service
+ * Validates user queries for ESG relevance and provides helpful suggestions
+ * Implements the established requirements for ESG query validation
+ */
 
 class QueryValidationService {
   constructor() {
-    // ESG-related keywords and terms
+    // ESG-related keywords and topics
     this.esgKeywords = [
-      // Environmental keywords
+      // Environmental
       'environment', 'environmental', 'carbon', 'emissions', 'climate', 'sustainability',
-      'renewable', 'energy', 'waste', 'pollution', 'recycling', 'circular', 'economy',
-      'biodiversity', 'water', 'air', 'quality', 'green', 'clean', 'eco', 'footprint',
-      'greenhouse', 'gas', 'ghg', 'scope', 'net', 'zero', 'decarbonization', 'renewable',
+      'renewable', 'energy', 'waste', 'recycling', 'circular', 'pollution', 'biodiversity',
+      'water', 'air', 'greenhouse', 'footprint', 'green', 'clean', 'eco',
       
-      // Social keywords
-      'social', 'community', 'employee', 'workers', 'safety', 'health', 'human', 'rights',
-      'diversity', 'inclusion', 'equity', 'labor', 'workplace', 'training', 'development',
-      'stakeholder', 'engagement', 'supply', 'chain', 'responsible', 'sourcing',
+      // Social
+      'social', 'community', 'diversity', 'inclusion', 'equity', 'human rights',
+      'labor', 'workplace', 'safety', 'health', 'employee', 'stakeholder',
+      'supply chain', 'ethics', 'fair trade', 'social impact',
       
-      // Governance keywords
-      'governance', 'board', 'ethics', 'compliance', 'transparency', 'accountability',
-      'risk', 'management', 'audit', 'reporting', 'disclosure', 'regulation', 'regulatory',
-      'policy', 'framework', 'standards', 'certification', 'accreditation',
+      // Governance
+      'governance', 'board', 'transparency', 'accountability', 'compliance',
+      'risk management', 'audit', 'disclosure', 'reporting', 'ethics',
+      'anti-corruption', 'data privacy', 'cybersecurity',
       
-      // Industry-specific keywords
-      'petrochemical', 'chemical', 'plastic', 'polymer', 'polyolefin', 'manufacturing',
-      'industrial', 'production', 'facility', 'plant', 'operations', 'borouge', 'sabic',
-      'adnoc', 'uae', 'singapore', 'middle', 'east',
+      // Industry-specific
+      'petrochemical', 'chemical', 'plastic', 'polymer', 'polyethylene', 'polypropylene',
+      'refining', 'oil', 'gas', 'manufacturing', 'industrial',
       
-      // Regulatory and compliance keywords
-      'cbam', 'reach', 'rohs', 'weee', 'eu', 'european', 'union', 'regulation', 'directive',
-      'law', 'legislation', 'standard', 'iso', 'gri', 'sasb', 'tcfd', 'ungc',
+      // Regulations and standards
+      'regulation', 'regulatory', 'compliance', 'standard', 'framework',
+      'policy', 'law', 'legislation', 'directive', 'requirement',
+      'REACH', 'CBAM', 'EU', 'EPA', 'ISO', 'GRI', 'SASB', 'TCFD',
       
-      // Business and strategy keywords
-      'strategy', 'strategic', 'business', 'market', 'industry', 'competitive', 'advantage',
-      'innovation', 'technology', 'digital', 'transformation', 'investment', 'growth',
-      'performance', 'metrics', 'kpi', 'target', 'goal', 'objective'
+      // Geographic regions
+      'UAE', 'Singapore', 'Europe', 'Asia', 'Middle East', 'China', 'India'
     ];
 
-    // Common meaningless patterns
-    this.meaninglessPatterns = [
-      /^[a-z]{3,}$/i, // Random letter sequences like "asdwrd"
-      /^[A-Z]{3,}$/, // All caps random sequences like "AADWRDWSD"
-      /^[0-9]+$/, // Only numbers
-      /^[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]+$/, // Only special characters
-      /^(.)\1{2,}$/, // Repeated characters like "aaaa" or "1111"
-      /^(qwerty|asdf|zxcv|keyboard|test|hello|hi|hey)$/i, // Common test strings
-      /^[a-z]{1,2}$/i, // Very short meaningless strings
+    // Common non-ESG queries that should be redirected
+    this.nonEsgPatterns = [
+      /^(hello|hi|hey|what|how are you)/i,
+      /^(weather|sports|entertainment|music|movie)/i,
+      /^(recipe|cooking|food|restaurant)/i,
+      /^(travel|vacation|holiday|tourism)/i,
+      /^(programming|code|software|app)/i,
+      /^(math|calculation|solve|equation)/i
     ];
 
-    // Minimum meaningful query requirements
-    this.minQueryLength = 3;
-    this.maxQueryLength = 500;
+    // ESG query suggestions
+    this.esgSuggestions = [
+      'Carbon emissions reduction strategies',
+      'EU plastic waste regulations 2024',
+      'Circular economy in petrochemicals',
+      'CBAM carbon border adjustment mechanism',
+      'REACH compliance requirements',
+      'Sustainability reporting standards',
+      'ESG disclosure requirements UAE',
+      'Plastic recycling technologies',
+      'Green hydrogen in petrochemicals',
+      'Supply chain sustainability',
+      'Environmental impact assessment',
+      'Corporate governance best practices'
+    ];
   }
 
   /**
-   * Main validation method
-   * @param {string} query - The user's search query
-   * @returns {Object} - Validation result with isValid, reason, and suggestions
+   * Validate if a query is ESG-related
+   * @param {string} query - User query to validate
+   * @returns {Object} - Validation result with suggestions
    */
   validateQuery(query) {
     if (!query || typeof query !== 'string') {
       return {
         isValid: false,
-        reason: 'empty',
-        message: 'Please enter a search query.',
-        suggestions: this.getDefaultSuggestions()
+        message: 'Please enter a valid search query',
+        suggestions: this.getRandomSuggestions(4)
       };
     }
 
     const trimmedQuery = query.trim();
-
-    // Check minimum length
-    if (trimmedQuery.length < this.minQueryLength) {
+    
+    if (trimmedQuery.length === 0) {
       return {
         isValid: false,
-        reason: 'too_short',
-        message: 'Please enter a more detailed search query.',
-        suggestions: this.getDefaultSuggestions()
+        message: 'Please enter a search query',
+        suggestions: this.getRandomSuggestions(4)
       };
     }
 
-    // Check maximum length
-    if (trimmedQuery.length > this.maxQueryLength) {
+    if (trimmedQuery.length < 3) {
       return {
         isValid: false,
-        reason: 'too_long',
-        message: 'Please shorten your search query.',
-        suggestions: this.getDefaultSuggestions()
+        message: 'Please enter a more specific search query (at least 3 characters)',
+        suggestions: this.getRandomSuggestions(4)
       };
     }
 
-    // Check for meaningless patterns
-    if (this.isMeaninglessPattern(trimmedQuery)) {
+    if (trimmedQuery.length > 1000) {
       return {
         isValid: false,
-        reason: 'meaningless',
-        message: 'Your query appears to contain random characters. Please enter a meaningful ESG-related search term.',
-        suggestions: this.getDefaultSuggestions()
+        message: 'Query too long. Please limit to 1000 characters or less',
+        suggestions: this.getRandomSuggestions(4)
       };
+    }
+
+    // Check for obvious non-ESG patterns
+    for (const pattern of this.nonEsgPatterns) {
+      if (pattern.test(trimmedQuery)) {
+        return {
+          isValid: false,
+          message: 'This appears to be a general query. Please search for ESG-related topics.',
+          suggestions: this.getRandomSuggestions(6)
+        };
+      }
     }
 
     // Check for ESG relevance
-    const relevanceScore = this.calculateESGRelevance(trimmedQuery);
-    
-    if (relevanceScore < 0.1) { // Very low threshold for ESG relevance
-      return {
-        isValid: false,
-        reason: 'not_esg_related',
-        message: 'Your query doesn\'t appear to be related to ESG (Environmental, Social, Governance) topics or Borouge\'s business operations.',
-        suggestions: this.getContextualSuggestions(trimmedQuery)
-      };
+    const lowerQuery = trimmedQuery.toLowerCase();
+    const hasEsgKeywords = this.esgKeywords.some(keyword => 
+      lowerQuery.includes(keyword.toLowerCase())
+    );
+
+    if (!hasEsgKeywords) {
+      // Additional check for business/industry terms that might be ESG-relevant
+      const businessTerms = [
+        'business', 'company', 'corporate', 'industry', 'market', 'investment',
+        'strategy', 'performance', 'management', 'operations', 'development',
+        'innovation', 'technology', 'future', 'trends', 'analysis', 'report'
+      ];
+
+      const hasBusinessTerms = businessTerms.some(term => 
+        lowerQuery.includes(term.toLowerCase())
+      );
+
+      if (!hasBusinessTerms) {
+        return {
+          isValid: false,
+          message: 'Please search for ESG-related topics such as environmental, social, governance, sustainability, or regulatory matters.',
+          suggestions: this.getRandomSuggestions(6)
+        };
+      }
     }
 
-    // Query is valid
+    // Query appears to be ESG-related
     return {
       isValid: true,
-      relevanceScore: relevanceScore,
-      enhancedQuery: this.enhanceQuery(trimmedQuery)
+      message: 'Query validated successfully',
+      confidence: this.calculateEsgConfidence(lowerQuery),
+      enhancedKeywords: this.extractRelevantKeywords(lowerQuery)
     };
   }
 
   /**
-   * Check if query matches meaningless patterns
-   * @param {string} query - The query to check
-   * @returns {boolean} - True if meaningless
+   * Calculate confidence score for ESG relevance
+   * @param {string} query - Lowercase query
+   * @returns {number} - Confidence score (0-1)
    */
-  isMeaninglessPattern(query) {
-    return this.meaninglessPatterns.some(pattern => pattern.test(query));
-  }
-
-  /**
-   * Calculate ESG relevance score
-   * @param {string} query - The query to analyze
-   * @returns {number} - Relevance score between 0 and 1
-   */
-  calculateESGRelevance(query) {
-    const queryLower = query.toLowerCase();
-    const words = queryLower.split(/\s+/);
-    
+  calculateEsgConfidence(query) {
+    let score = 0;
     let matchCount = 0;
-    let totalWords = words.length;
 
-    // Check for direct keyword matches
-    words.forEach(word => {
-      if (this.esgKeywords.some(keyword => 
-        word.includes(keyword) || keyword.includes(word)
-      )) {
+    for (const keyword of this.esgKeywords) {
+      if (query.includes(keyword.toLowerCase())) {
         matchCount++;
+        // Weight certain keywords higher
+        if (['esg', 'sustainability', 'governance', 'environmental'].includes(keyword.toLowerCase())) {
+          score += 0.3;
+        } else {
+          score += 0.1;
+        }
       }
-    });
-
-    // Bonus for industry-specific terms
-    if (queryLower.includes('borouge') || queryLower.includes('petrochemical') || 
-        queryLower.includes('plastic') || queryLower.includes('polymer')) {
-      matchCount += 2;
     }
 
-    // Bonus for ESG acronyms
-    if (/\b(esg|csr|sdg|tcfd|sasb|gri|ungc|cbam|reach)\b/i.test(queryLower)) {
-      matchCount += 2;
-    }
-
-    return Math.min(1, matchCount / Math.max(1, totalWords));
+    return Math.min(score, 1.0);
   }
 
   /**
-   * Enhance valid queries with additional context
-   * @param {string} query - The original query
-   * @returns {string} - Enhanced query
+   * Extract relevant ESG keywords from query
+   * @param {string} query - Lowercase query
+   * @returns {Array} - Array of matched keywords
    */
-  enhanceQuery(query) {
-    // For now, return the original query
-    // This could be expanded to add Borouge-specific context
-    return query;
+  extractRelevantKeywords(query) {
+    return this.esgKeywords.filter(keyword => 
+      query.includes(keyword.toLowerCase())
+    );
   }
 
   /**
-   * Get default ESG-related suggestions
-   * @returns {Array} - Array of suggestion objects
+   * Get random ESG suggestions
+   * @param {number} count - Number of suggestions to return
+   * @returns {Array} - Array of suggestion strings
    */
-  getDefaultSuggestions() {
-    return [
-      {
-        category: 'Environmental',
-        suggestions: [
-          'carbon emissions reduction strategies',
-          'renewable energy adoption in petrochemicals',
-          'circular economy initiatives',
-          'waste management best practices'
-        ]
-      },
-      {
-        category: 'Social',
-        suggestions: [
-          'employee safety programs',
-          'community engagement initiatives',
-          'supply chain responsibility',
-          'diversity and inclusion policies'
-        ]
-      },
-      {
-        category: 'Governance',
-        suggestions: [
-          'ESG reporting requirements',
-          'regulatory compliance frameworks',
-          'risk management strategies',
-          'transparency and accountability measures'
-        ]
-      },
-      {
-        category: 'Industry-Specific',
-        suggestions: [
-          'CBAM carbon border adjustment impact',
-          'EU plastic regulations 2024',
-          'petrochemical sustainability trends',
-          'polymer recycling technologies'
-        ]
-      }
-    ];
+  getRandomSuggestions(count = 4) {
+    const shuffled = [...this.esgSuggestions].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
   }
 
   /**
-   * Get contextual suggestions based on the invalid query
-   * @param {string} query - The original query
-   * @returns {Array} - Array of suggestion objects
+   * Get suggestions based on query context
+   * @param {string} query - User query
+   * @returns {Array} - Contextual suggestions
    */
   getContextualSuggestions(query) {
-    const queryLower = query.toLowerCase();
-
-    // Try to infer intent from partial matches
-    if (queryLower.includes('carbon') || queryLower.includes('emission')) {
-      return [{
-        category: 'Environmental - Carbon Management',
-        suggestions: [
-          'carbon footprint reduction strategies',
-          'scope 1 2 3 emissions reporting',
-          'carbon pricing mechanisms',
-          'net zero transition plans'
-        ]
-      }];
+    const lowerQuery = query.toLowerCase();
+    
+    // Environmental context
+    if (lowerQuery.includes('environment') || lowerQuery.includes('carbon') || lowerQuery.includes('climate')) {
+      return [
+        'Carbon emissions reduction strategies',
+        'Environmental impact assessment',
+        'Climate change adaptation plans',
+        'Renewable energy transition'
+      ];
     }
-
-    if (queryLower.includes('plastic') || queryLower.includes('polymer')) {
-      return [{
-        category: 'Industry - Plastics & Polymers',
-        suggestions: [
-          'plastic waste reduction initiatives',
-          'polymer recycling technologies',
-          'sustainable plastic alternatives',
-          'circular economy in plastics'
-        ]
-      }];
+    
+    // Regulatory context
+    if (lowerQuery.includes('regulation') || lowerQuery.includes('compliance') || lowerQuery.includes('law')) {
+      return [
+        'EU plastic waste regulations 2024',
+        'CBAM carbon border adjustment mechanism',
+        'REACH compliance requirements',
+        'ESG disclosure requirements UAE'
+      ];
     }
-
-    if (queryLower.includes('regulation') || queryLower.includes('compliance')) {
-      return [{
-        category: 'Governance - Regulatory Compliance',
-        suggestions: [
-          'EU chemical regulations compliance',
-          'CBAM implementation strategies',
-          'REACH regulation requirements',
-          'environmental compliance frameworks'
-        ]
-      }];
+    
+    // Industry context
+    if (lowerQuery.includes('plastic') || lowerQuery.includes('petrochemical') || lowerQuery.includes('chemical')) {
+      return [
+        'Circular economy in petrochemicals',
+        'Plastic recycling technologies',
+        'Green hydrogen in petrochemicals',
+        'Sustainable chemical manufacturing'
+      ];
     }
-
-    // Return default suggestions if no context found
-    return this.getDefaultSuggestions();
+    
+    // Default suggestions
+    return this.getRandomSuggestions(4);
   }
 
   /**
-   * Quick validation for real-time feedback
-   * @param {string} query - The query to validate
-   * @returns {boolean} - True if query appears valid
+   * Enhance query with additional context
+   * @param {string} query - Original query
+   * @returns {Object} - Enhanced query information
    */
-  quickValidate(query) {
-    if (!query || query.trim().length < this.minQueryLength) {
-      return false;
+  enhanceQuery(query) {
+    const validation = this.validateQuery(query);
+    
+    if (!validation.isValid) {
+      return validation;
     }
 
-    if (this.isMeaninglessPattern(query.trim())) {
-      return false;
-    }
-
-    return true;
+    return {
+      ...validation,
+      originalQuery: query,
+      suggestedEnhancements: this.getContextualSuggestions(query),
+      queryType: this.classifyQueryType(query),
+      priority: this.assessQueryPriority(query)
+    };
   }
 
   /**
-   * Get validation status for UI feedback
-   * @param {string} query - The query to check
-   * @returns {string} - Status: 'empty', 'invalid', 'warning', 'valid'
+   * Classify the type of ESG query
+   * @param {string} query - User query
+   * @returns {string} - Query classification
    */
-  getValidationStatus(query) {
-    if (!query || query.trim().length === 0) {
-      return 'empty';
+  classifyQueryType(query) {
+    const lowerQuery = query.toLowerCase();
+    
+    if (lowerQuery.includes('regulation') || lowerQuery.includes('compliance') || lowerQuery.includes('law')) {
+      return 'regulatory';
     }
-
-    const trimmedQuery = query.trim();
-
-    if (trimmedQuery.length < this.minQueryLength || this.isMeaninglessPattern(trimmedQuery)) {
-      return 'invalid';
+    if (lowerQuery.includes('environment') || lowerQuery.includes('carbon') || lowerQuery.includes('climate')) {
+      return 'environmental';
     }
-
-    const relevanceScore = this.calculateESGRelevance(trimmedQuery);
-
-    if (relevanceScore < 0.1) {
-      return 'warning';
+    if (lowerQuery.includes('social') || lowerQuery.includes('community') || lowerQuery.includes('diversity')) {
+      return 'social';
     }
+    if (lowerQuery.includes('governance') || lowerQuery.includes('board') || lowerQuery.includes('transparency')) {
+      return 'governance';
+    }
+    if (lowerQuery.includes('report') || lowerQuery.includes('disclosure') || lowerQuery.includes('standard')) {
+      return 'reporting';
+    }
+    
+    return 'general';
+  }
 
-    return 'valid';
+  /**
+   * Assess query priority level
+   * @param {string} query - User query
+   * @returns {string} - Priority level
+   */
+  assessQueryPriority(query) {
+    const lowerQuery = query.toLowerCase();
+    const urgentTerms = ['urgent', 'immediate', 'crisis', 'emergency', 'deadline', 'compliance'];
+    const highPriorityTerms = ['regulation', 'requirement', 'mandatory', 'audit', 'risk'];
+    
+    if (urgentTerms.some(term => lowerQuery.includes(term))) {
+      return 'urgent';
+    }
+    if (highPriorityTerms.some(term => lowerQuery.includes(term))) {
+      return 'high';
+    }
+    
+    return 'medium';
   }
 }
 
 // Export singleton instance
 export const queryValidationService = new QueryValidationService();
-export default queryValidationService;
