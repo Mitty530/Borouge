@@ -161,14 +161,15 @@ const ResultsDisplay = ({ results, query, onClear }) => {
               </div>
 
               {/* Key Insights */}
-              {results.newsData.executiveSummary.key_insights && results.newsData.executiveSummary.key_insights.length > 0 && (
+              {(results.newsData.executiveSummary.key_insights || results.newsData.executiveSummary.key_findings) &&
+               (results.newsData.executiveSummary.key_insights || results.newsData.executiveSummary.key_findings).length > 0 && (
                 <div className="insights-section">
                   <div className="insights-header">
                     <Star size={20} />
-                    <h3>Key Insights</h3>
+                    <h3>Key Findings</h3>
                   </div>
                   <div className="insights-list">
-                    {results.newsData.executiveSummary.key_insights.map((insight, index) => (
+                    {(results.newsData.executiveSummary.key_insights || results.newsData.executiveSummary.key_findings).map((insight, index) => (
                       <div key={index} className="insight-item">
                         <ArrowRight size={16} className="insight-arrow" />
                         <span>{insight}</span>
@@ -178,14 +179,16 @@ const ResultsDisplay = ({ results, query, onClear }) => {
                 </div>
               )}
 
-              {/* Business Impact */}
-              {results.newsData.executiveSummary.business_impact && (
+              {/* Strategic Implications */}
+              {(results.newsData.executiveSummary.business_impact || results.newsData.executiveSummary.strategic_implications) && (
                 <div className="impact-section">
                   <div className="impact-header">
                     <TrendingUp size={20} />
-                    <h3>Business Impact</h3>
+                    <h3>Strategic Implications</h3>
                   </div>
-                  <p className="impact-content">{results.newsData.executiveSummary.business_impact}</p>
+                  <p className="impact-content">
+                    {results.newsData.executiveSummary.business_impact || results.newsData.executiveSummary.strategic_implications}
+                  </p>
                 </div>
               )}
 
