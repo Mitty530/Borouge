@@ -36,8 +36,7 @@ module.exports = async (req, res) => {
     // Test database connection
     const { data, error } = await supabase
       .from('esg_intelligence_cache')
-      .select('count(*)')
-      .limit(1);
+      .select('*', { count: 'exact', head: true });
 
     const dbResponseTime = Date.now() - startTime;
 
