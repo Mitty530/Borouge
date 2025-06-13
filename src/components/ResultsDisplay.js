@@ -1,45 +1,25 @@
-import React, { useState } from 'react';
-import { Clock, Zap, FileText, ExternalLink, TrendingUp, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import React from 'react';
+import {
+  Clock, Brain, Newspaper, ExternalLink, TrendingUp, AlertTriangle,
+  CheckCircle, X, Target, Lightbulb, BarChart3, Zap, ArrowRight,
+  Globe, Calendar, Star, Award, Shield, Briefcase, DollarSign,
+  FileText, Activity
+} from 'lucide-react';
 import './ResultsDisplay.css';
 
-const ResultsDisplay = ({ results, query, searchMode, onClear }) => {
-  const [expandedArticles, setExpandedArticles] = useState(new Set());
+const ResultsDisplay = ({ results, query, onClear }) => {
 
   if (!results || !results.success) {
     return (
       <div className="results-error">
-        <h3>⚠️ No results available</h3>
+        <AlertTriangle size={48} className="error-icon" />
+        <h3>No results available</h3>
         <p>Unable to display search results. Please try again.</p>
       </div>
     );
   }
 
-  const toggleArticleExpansion = (articleId) => {
-    const newExpanded = new Set(expandedArticles);
-    if (newExpanded.has(articleId)) {
-      newExpanded.delete(articleId);
-    } else {
-      newExpanded.add(articleId);
-    }
-    setExpandedArticles(newExpanded);
-  };
 
-  const getImpactLevelIcon = (level) => {
-    switch (level) {
-      case 'CRITICAL':
-        return <AlertTriangle className="impact-icon critical" size={16} />;
-      case 'HIGH':
-        return <TrendingUp className="impact-icon high" size={16} />;
-      case 'OPPORTUNITY':
-        return <CheckCircle className="impact-icon opportunity" size={16} />;
-      case 'MEDIUM':
-        return <FileText className="impact-icon medium" size={16} />;
-      case 'LOW':
-        return <FileText className="impact-icon low" size={16} />;
-      default:
-        return <FileText className="impact-icon medium" size={16} />;
-    }
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown date';
@@ -55,264 +35,450 @@ const ResultsDisplay = ({ results, query, searchMode, onClear }) => {
   };
 
   return (
-    <div className="results-display">
-      {/* Results Header */}
-      <div className="results-header">
-        <div className="results-meta">
-          <h2 className="results-title">
-            {searchMode === 'intelligence' ? (
-              <>
-                <Zap size={24} />
-                ESG Intelligence Results
-              </>
-            ) : (
-              <>
-                <FileText size={24} />
-                Smart Search Results
-              </>
+    <div className="unified-results-display">
+      {/* Hero Header */}
+      <div className="results-hero">
+        <div className="hero-content">
+          <div className="hero-title">
+            <Brain size={32} className="hero-icon" />
+            <h1>ESG Intelligence Report</h1>
+          </div>
+          <div className="hero-subtitle">
+            <span className="query-highlight">"{query}"</span>
+          </div>
+          <div className="hero-stats">
+            <div className="stat-item">
+              <Clock size={16} />
+              <span>{results.responseTime}ms</span>
+            </div>
+            {results.newsData?.articles && (
+              <div className="stat-item">
+                <Newspaper size={16} />
+                <span>{results.newsData.articles.length} articles</span>
+              </div>
             )}
-          </h2>
-          <div className="results-info">
-            <span className="query-text">"{query}"</span>
-            <div className="results-stats">
-              <span className="stat">
-                <Clock size={14} />
-                {results.responseTime}ms
-              </span>
-              {results.cached && (
-                <span className="stat cached">
-                  ⚡ Cached
-                </span>
-              )}
-              {results.articles && (
-                <span className="stat">
-                  {results.articles.length} articles
-                </span>
-              )}
+            <div className="stat-item">
+              <Zap size={16} />
+              <span>AI + News Analysis</span>
             </div>
           </div>
         </div>
-        
-        <button onClick={onClear} className="clear-results-button">
-          <X size={18} />
-          Clear
+
+        <button onClick={onClear} className="hero-clear-button">
+          <X size={20} />
         </button>
       </div>
 
-      {/* ESG Intelligence Results */}
-      {searchMode === 'intelligence' && results.response && (
-        <div className="intelligence-results">
-          <div className="intelligence-content">
-            <h3>Analysis</h3>
-            <div className="response-content">
-              {results.response.split('\n').map((paragraph, index) => (
-                paragraph.trim() && (
-                  <p key={index}>{paragraph.trim()}</p>
-                )
-              ))}
+      {/* Main Content Grid */}
+      <div className="results-grid">
+
+        {/* AI Analysis Section - Enhanced Card Layout */}
+        {results.aiAnalysis && (
+          <div className="analysis-card full-width">
+            <div className="card-header">
+              <Brain size={24} className="card-icon ai-icon" />
+              <h2>AI Analysis</h2>
+              <div className="card-badge ai-badge">Expert Insights</div>
+            </div>
+            <div className="card-content">
+              <div className="enhanced-analysis-layout">
+                {parseEnhancedAIAnalysis(results.aiAnalysis)}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Smart Search Results */}
-      {searchMode === 'smart-search' && (
-        <div className="smart-search-results">
-          
-          {/* Executive Summary */}
-          {results.comprehensiveExecutiveSummary && (
-            <div className="executive-summary">
-              <h3>Executive Summary</h3>
-              <div className="summary-content">
-                {/* Executive Brief */}
-                {results.comprehensiveExecutiveSummary.executive_brief && (
-                  <div className="executive-brief">
-                    <h4>Executive Brief</h4>
-                    <p>{results.comprehensiveExecutiveSummary.executive_brief}</p>
-                  </div>
-                )}
-
-                {/* Key Insights */}
-                {results.comprehensiveExecutiveSummary.key_insights && results.comprehensiveExecutiveSummary.key_insights.length > 0 && (
-                  <div className="key-insights">
-                    <h4>Key Insights</h4>
-                    <ul>
-                      {results.comprehensiveExecutiveSummary.key_insights.map((insight, index) => (
-                        <li key={index}>{insight}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Immediate Priorities */}
-                {results.comprehensiveExecutiveSummary.immediate_priorities && results.comprehensiveExecutiveSummary.immediate_priorities.length > 0 && (
-                  <div className="immediate-priorities">
-                    <h4>Immediate Priorities</h4>
-                    <ul>
-                      {results.comprehensiveExecutiveSummary.immediate_priorities.map((priority, index) => (
-                        <li key={index}>{priority}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Business Impact */}
-                {results.comprehensiveExecutiveSummary.business_impact && (
-                  <div className="business-impact">
-                    <h4>Business Impact</h4>
-                    <p>{results.comprehensiveExecutiveSummary.business_impact}</p>
-                  </div>
-                )}
-
-                {/* Urgency Level */}
-                {results.comprehensiveExecutiveSummary.urgency_level && (
-                  <div className="urgency-level">
-                    <h4>Urgency Level</h4>
-                    <span className={`urgency-badge ${results.comprehensiveExecutiveSummary.urgency_level.toLowerCase()}`}>
-                      {results.comprehensiveExecutiveSummary.urgency_level}
-                    </span>
-                  </div>
-                )}
-              </div>
+        {/* Executive Dashboard */}
+        {results.newsData?.executiveSummary && (
+          <div className="dashboard-card">
+            <div className="card-header">
+              <BarChart3 size={24} className="card-icon dashboard-icon" />
+              <h2>Executive Dashboard</h2>
+              <div className="card-badge executive-badge">Strategic Overview</div>
             </div>
-          )}
+            <div className="card-content">
 
-          {/* Analytics Overview */}
-          {results.analytics && (
-            <div className="analytics-overview">
-              <h3>Analysis Overview</h3>
-              <div className="analytics-grid">
-                <div className="analytics-item">
-                  <span className="analytics-label">Total Articles</span>
-                  <span className="analytics-value">{results.analytics.totalArticles || 0}</span>
+              {/* Executive Brief */}
+              {results.newsData.executiveSummary.executive_brief && (
+                <div className="executive-brief">
+                  <div className="brief-header">
+                    <Briefcase size={20} />
+                    <h3>Executive Brief</h3>
+                  </div>
+                  <p className="brief-content">{results.newsData.executiveSummary.executive_brief}</p>
                 </div>
-                <div className="analytics-item">
-                  <span className="analytics-label">Actionable Insights</span>
-                  <span className="analytics-value">{results.analytics.actionableInsights || 0}</span>
-                </div>
-                <div className="analytics-item">
-                  <span className="analytics-label">Strategic Opportunities</span>
-                  <span className="analytics-value">{results.analytics.strategicOpportunities || 0}</span>
-                </div>
-                <div className="analytics-item">
-                  <span className="analytics-label">Urgent Attention</span>
-                  <span className="analytics-value urgent">{results.analytics.urgentAttentionRequired || 0}</span>
-                </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* Articles */}
-          {results.articles && results.articles.length > 0 && (
-            <div className="articles-section">
-              <h3>Related Articles ({results.articles.length})</h3>
-              <div className="articles-grid">
-                {results.articles.map((article, index) => (
-                  <div key={article.id || index} className="article-card">
-                    <div className="article-header">
-                      <div className="article-meta">
-                        <span className="article-source">{article.source}</span>
-                        <span className="article-date">{formatDate(article.published_at || article.publishedAt)}</span>
+              {/* Key Metrics Grid */}
+              <div className="metrics-grid">
+                {results.newsData.executiveSummary.urgency_level && (
+                  <div className="metric-card urgency">
+                    <div className="metric-icon">
+                      <AlertTriangle size={20} />
+                    </div>
+                    <div className="metric-content">
+                      <span className="metric-label">Urgency Level</span>
+                      <span className={`metric-value urgency-${results.newsData.executiveSummary.urgency_level.toLowerCase()}`}>
+                        {results.newsData.executiveSummary.urgency_level}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {results.newsData.analytics && (
+                  <>
+                    <div className="metric-card insights">
+                      <div className="metric-icon">
+                        <Lightbulb size={20} />
                       </div>
-                      <div className="article-impact">
-                        {getImpactLevelIcon(article.impact_level || article.impactLevel)}
-                        <span className={`impact-level ${(article.impact_level || article.impactLevel || 'medium').toLowerCase()}`}>
-                          {article.impact_level || article.impactLevel || 'Medium'}
-                        </span>
+                      <div className="metric-content">
+                        <span className="metric-label">Actionable Insights</span>
+                        <span className="metric-value">{results.newsData.analytics.actionableInsights || 0}</span>
                       </div>
                     </div>
-                    
-                    <h4 className="article-title">{article.title}</h4>
-                    
-                    {article.description && (
-                      <p className="article-description">{article.description}</p>
-                    )}
-                    
-                    {article.summary && (
-                      <div className="article-summary">
-                        <h5>AI Summary</h5>
-                        <p>{article.summary}</p>
+
+                    <div className="metric-card opportunities">
+                      <div className="metric-icon">
+                        <Target size={20} />
                       </div>
-                    )}
-                    
-                    <div className="article-footer">
-                      <div className="article-score">
-                        Relevance: {article.relevance_score || article.relevanceScore || 0}%
-                      </div>
-                      
-                      <div className="article-actions">
-                        {article.url && (
-                          <a 
-                            href={article.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="article-link"
-                          >
-                            <ExternalLink size={14} />
-                            Read Full Article
-                          </a>
-                        )}
-                        
-                        {(article.action_items || article.actionItems) && (
-                          <button
-                            onClick={() => toggleArticleExpansion(article.id || index)}
-                            className="expand-button"
-                          >
-                            {expandedArticles.has(article.id || index) ? 'Hide' : 'Show'} Action Items
-                          </button>
-                        )}
+                      <div className="metric-content">
+                        <span className="metric-label">Opportunities</span>
+                        <span className="metric-value">{results.newsData.analytics.strategicOpportunities || 0}</span>
                       </div>
                     </div>
-                    
-                    {expandedArticles.has(article.id || index) && (article.action_items || article.actionItems) && (
-                      <div className="action-items">
-                        <h5>Action Items</h5>
-                        <ul>
-                          {(article.action_items || article.actionItems).map((item, itemIndex) => (
-                            <li key={itemIndex}>{item}</li>
-                          ))}
-                        </ul>
+
+                    <div className="metric-card confidence">
+                      <div className="metric-icon">
+                        <Award size={20} />
                       </div>
-                    )}
+                      <div className="metric-content">
+                        <span className="metric-label">Confidence</span>
+                        <span className="metric-value">{results.newsData.analytics.overallConfidence || 'Medium'}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Key Insights */}
+              {results.newsData.executiveSummary.key_insights && results.newsData.executiveSummary.key_insights.length > 0 && (
+                <div className="insights-section">
+                  <div className="insights-header">
+                    <Star size={20} />
+                    <h3>Key Insights</h3>
                   </div>
-                ))}
+                  <div className="insights-list">
+                    {results.newsData.executiveSummary.key_insights.map((insight, index) => (
+                      <div key={index} className="insight-item">
+                        <ArrowRight size={16} className="insight-arrow" />
+                        <span>{insight}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Business Impact */}
+              {results.newsData.executiveSummary.business_impact && (
+                <div className="impact-section">
+                  <div className="impact-header">
+                    <TrendingUp size={20} />
+                    <h3>Business Impact</h3>
+                  </div>
+                  <p className="impact-content">{results.newsData.executiveSummary.business_impact}</p>
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
+
+        {/* News Articles */}
+        {results.newsData?.articles && results.newsData.articles.length > 0 && (
+          <div className="news-articles-card">
+            <div className="card-header">
+              <Newspaper size={24} className="card-icon news-icon" />
+              <h2>Latest News & Analysis</h2>
+              <div className="card-badge news-badge">{results.newsData.articles.length} Articles</div>
+            </div>
+            <div className="card-content">
+              <div className="premium-articles-grid">
+                {results.newsData.articles.map((article, index) => {
+                  const impactLevel = (article.impact_level || article.impactLevel || 'medium').toLowerCase();
+                  return (
+                    <div key={article.id || index} className={`premium-article-card impact-${impactLevel}`}>
+                      {/* Article Header with Impact Indicator */}
+                      <div className="premium-article-header">
+                        <div className={`impact-indicator impact-${impactLevel}`}>
+                          {getImpactIcon(impactLevel)}
+                        </div>
+                        <div className="article-meta-info">
+                          <div className="source-info">
+                            <Globe size={12} />
+                            <span className="source-name">{article.source}</span>
+                          </div>
+                          <div className="date-info">
+                            <Calendar size={12} />
+                            <span className="publish-date">{formatDate(article.published_at || article.publishedAt)}</span>
+                          </div>
+                        </div>
+                        <div className={`impact-label impact-${impactLevel}`}>
+                          {(article.impact_level || article.impactLevel || 'Medium').toUpperCase()}
+                        </div>
+                      </div>
+
+                      {/* Article Content */}
+                      <div className="premium-article-content">
+                        <h3 className="premium-article-title">{article.title}</h3>
+
+                        {article.description && (
+                          <p className="premium-article-description">{article.description}</p>
+                        )}
+
+                        {/* Relevance and Action Bar */}
+                        <div className="premium-article-footer">
+                          <div className="relevance-indicator">
+                            <div className="relevance-bar">
+                              <div
+                                className="relevance-fill"
+                                style={{ width: `${article.relevance_score || article.relevanceScore || 0}%` }}
+                              ></div>
+                            </div>
+                            <span className="relevance-text">
+                              {article.relevance_score || article.relevanceScore || 0}% Relevant
+                            </span>
+                          </div>
+
+                          {article.url && (
+                            <a
+                              href={article.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`premium-read-btn impact-${impactLevel}`}
+                            >
+                              <ExternalLink size={14} />
+                              Read Full Article
+                            </a>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Impact Decoration */}
+                      <div className={`impact-decoration impact-${impactLevel}`}></div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Action Items Summary */}
-          {results.actionItems && results.actionItems.length > 0 && (
-            <div className="action-items-summary">
-              <h3>Key Action Items</h3>
-              <ul className="action-items-list">
-                {results.actionItems.map((item, index) => (
-                  <li key={index} className="action-item">
-                    <CheckCircle size={16} className="action-icon" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
+      </div>
 
-      {/* Results Footer */}
-      <div className="results-footer">
-        <div className="footer-info">
-          <span>Powered by Gemini AI</span>
-          <span>•</span>
-          <span>Generated at {new Date(results.timestamp).toLocaleTimeString()}</span>
-          {results.requestId && (
-            <>
-              <span>•</span>
-              <span className="request-id">ID: {results.requestId}</span>
-            </>
-          )}
+      {/* Footer */}
+      <div className="unified-footer">
+        <div className="footer-content">
+          <div className="footer-branding">
+            <Brain size={20} />
+            <span>Powered by Gemini AI</span>
+          </div>
+          <div className="footer-meta">
+            <span>Generated at {new Date(results.timestamp).toLocaleTimeString()}</span>
+            {results.metadata?.intelligenceSuccess && results.metadata?.smartSearchSuccess && (
+              <span className="success-badge">
+                <CheckCircle size={14} />
+                Full Analysis Complete
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
+
   );
+};
+
+// Enhanced function to parse AI analysis into card-based sections for better readability
+const parseEnhancedAIAnalysis = (analysisText) => {
+  if (!analysisText) return null;
+
+  // Remove markdown formatting and split into sections
+  const cleanText = analysisText
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove ** formatting
+    .replace(/\*(.*?)\*/g, '$1')     // Remove * formatting
+    .trim();
+
+  // Split by numbered sections (1., 2., 3., etc.) or section headers
+  const sections = cleanText.split(/(?=\d+\.\s+\*?\*?[A-Z][^:]*:?|\n[A-Z][^:]*:\n)/);
+
+  return (
+    <div className="enhanced-analysis-grid">
+      {sections.map((section, index) => {
+        if (!section.trim()) return null;
+
+        // Check if this is a numbered section
+        const numberedMatch = section.match(/^(\d+)\.\s+\*?\*?([^:]+):?\s*([\s\S]*)/);
+
+        if (numberedMatch) {
+          const [, number, title, content] = numberedMatch;
+          const sectionType = getSectionType(title.trim());
+
+          return (
+            <div key={index} className={`analysis-card-section ${sectionType}`}>
+              <div className="section-card-header">
+                <div className="section-number-badge">{number}</div>
+                <h3 className="section-card-title">{title.trim()}</h3>
+                <div className={`section-type-indicator ${sectionType}`}>
+                  {getSectionIcon(sectionType)}
+                </div>
+              </div>
+              <div className="section-card-content">
+                {formatSectionContent(content.trim(), sectionType)}
+              </div>
+            </div>
+          );
+        } else {
+          // Check for non-numbered section headers
+          const headerMatch = section.match(/^([A-Z][^:]*):?\s*([\s\S]*)/);
+
+          if (headerMatch) {
+            const [, title, content] = headerMatch;
+            const sectionType = getSectionType(title.trim());
+
+            return (
+              <div key={index} className={`analysis-card-section ${sectionType}`}>
+                <div className="section-card-header">
+                  <h3 className="section-card-title">{title.trim()}</h3>
+                  <div className={`section-type-indicator ${sectionType}`}>
+                    {getSectionIcon(sectionType)}
+                  </div>
+                </div>
+                <div className="section-card-content">
+                  {formatSectionContent(content.trim(), sectionType)}
+                </div>
+              </div>
+            );
+          } else {
+            // Regular content block
+            return (
+              <div key={index} className="analysis-card-section general">
+                <div className="section-card-content">
+                  {formatSectionContent(section.trim(), 'general')}
+                </div>
+              </div>
+            );
+          }
+        }
+      })}
+    </div>
+  );
+};
+
+// Helper function to determine section type based on title
+const getSectionType = (title) => {
+  const lowerTitle = title.toLowerCase();
+
+  if (lowerTitle.includes('executive') || lowerTitle.includes('summary')) {
+    return 'executive';
+  } else if (lowerTitle.includes('quantitative') || lowerTitle.includes('financial') || lowerTitle.includes('cost') || lowerTitle.includes('investment')) {
+    return 'financial';
+  } else if (lowerTitle.includes('risk') || lowerTitle.includes('threat') || lowerTitle.includes('challenge')) {
+    return 'risk';
+  } else if (lowerTitle.includes('opportunity') || lowerTitle.includes('potential') || lowerTitle.includes('advantage')) {
+    return 'opportunity';
+  } else if (lowerTitle.includes('regulatory') || lowerTitle.includes('compliance') || lowerTitle.includes('legal')) {
+    return 'regulatory';
+  } else if (lowerTitle.includes('business') || lowerTitle.includes('impact') || lowerTitle.includes('operational')) {
+    return 'business';
+  } else if (lowerTitle.includes('strategic') || lowerTitle.includes('recommendation') || lowerTitle.includes('action')) {
+    return 'strategic';
+  } else if (lowerTitle.includes('esg') || lowerTitle.includes('sustainability') || lowerTitle.includes('environment')) {
+    return 'esg';
+  }
+  return 'general';
+};
+
+// Helper function to get section icon based on type
+const getSectionIcon = (sectionType) => {
+  switch (sectionType) {
+    case 'executive':
+      return <Briefcase size={20} />;
+    case 'financial':
+      return <DollarSign size={20} />;
+    case 'risk':
+      return <AlertTriangle size={20} />;
+    case 'opportunity':
+      return <TrendingUp size={20} />;
+    case 'regulatory':
+      return <Shield size={20} />;
+    case 'business':
+      return <Activity size={20} />;
+    case 'strategic':
+      return <Target size={20} />;
+    case 'esg':
+      return <Award size={20} />;
+    default:
+      return <FileText size={20} />;
+  }
+};
+
+// Helper function to format section content with better structure
+const formatSectionContent = (content, sectionType) => {
+  if (!content) return null;
+
+  // Split content into paragraphs and bullet points
+  const paragraphs = content.split('\n').filter(p => p.trim());
+
+  return (
+    <div className="formatted-content">
+      {paragraphs.map((paragraph, index) => {
+        const trimmed = paragraph.trim();
+
+        // Check if it's a bullet point or list item
+        if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.match(/^\d+\./)) {
+          return (
+            <div key={index} className="content-list-item">
+              <ArrowRight size={14} className="list-arrow" />
+              <span>{trimmed.replace(/^[-•]\s*|\d+\.\s*/, '')}</span>
+            </div>
+          );
+        }
+
+        // Check if it contains numerical data (for financial/quantitative sections)
+        if (sectionType === 'financial' && trimmed.match(/[\d,]+\.?\d*[%$€£¥]?|\$[\d,]+\.?\d*|€[\d,]+\.?\d*|\d+%/)) {
+          return (
+            <div key={index} className="content-highlight-data">
+              <DollarSign size={16} className="data-icon" />
+              <p>{trimmed}</p>
+            </div>
+          );
+        }
+
+        // Regular paragraph
+        return (
+          <p key={index} className="content-paragraph">
+            {trimmed}
+          </p>
+        );
+      })}
+    </div>
+  );
+};
+
+// Helper function to get impact icons for premium cards
+const getImpactIcon = (level) => {
+  switch (level) {
+    case 'high':
+    case 'critical':
+      return <AlertTriangle size={20} />;
+    case 'opportunity':
+      return <TrendingUp size={20} />;
+    case 'medium':
+      return <Shield size={20} />;
+    case 'low':
+    default:
+      return <CheckCircle size={20} />;
+  }
 };
 
 export default ResultsDisplay;

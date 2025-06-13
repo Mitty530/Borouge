@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Zap, FileText } from 'lucide-react';
+import { Search } from 'lucide-react';
 import './SearchInterface.css';
 import { esgIntelligenceService } from '../services/esgIntelligenceService';
 
-const SearchInterface = ({ 
-  onSearch, 
-  isLoading, 
-  searchMode, 
-  onModeChange, 
-  currentQuery 
+const SearchInterface = ({
+  onSearch,
+  isLoading,
+  currentQuery
 }) => {
   const [query, setQuery] = useState(currentQuery || '');
   const [suggestedQueries, setSuggestedQueries] = useState([]);
@@ -60,31 +58,10 @@ const SearchInterface = ({
     onSearch(suggestion);
   };
 
-  const handleModeToggle = (mode) => {
-    onModeChange(mode);
-  };
+
 
   return (
     <div className="search-interface">
-      {/* Search Mode Toggle */}
-      <div className="search-mode-toggle">
-        <button
-          className={`mode-button ${searchMode === 'intelligence' ? 'active' : ''}`}
-          onClick={() => handleModeToggle('intelligence')}
-          disabled={isLoading}
-        >
-          <Zap size={18} />
-          ESG Intelligence
-        </button>
-        <button
-          className={`mode-button ${searchMode === 'smart-search' ? 'active' : ''}`}
-          onClick={() => handleModeToggle('smart-search')}
-          disabled={isLoading}
-        >
-          <FileText size={18} />
-          Smart Search
-        </button>
-      </div>
 
       {/* Search Form */}
       <form onSubmit={handleSubmit} className="search-form">
@@ -98,11 +75,7 @@ const SearchInterface = ({
               type="text"
               value={query}
               onChange={handleQueryChange}
-              placeholder={
-                searchMode === 'intelligence' 
-                  ? "Ask about ESG topics, regulations, or sustainability..." 
-                  : "Search for ESG news and analysis..."
-              }
+              placeholder="Ask about ESG topics, get news analysis, and strategic insights..."
               className="search-input"
               disabled={isLoading}
               autoComplete="off"
@@ -136,13 +109,9 @@ const SearchInterface = ({
           </button>
         </div>
 
-        {/* Search Mode Description */}
-        <div className="search-mode-description">
-          {searchMode === 'intelligence' ? (
-            <p>Get comprehensive AI-powered analysis of ESG topics and regulations</p>
-          ) : (
-            <p>Search real-time news with AI analysis and executive summaries</p>
-          )}
+        {/* Unified Description */}
+        <div className="search-description">
+          <p>Get comprehensive AI analysis, real-time news, and strategic insights all in one search</p>
         </div>
       </form>
 

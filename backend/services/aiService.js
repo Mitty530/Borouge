@@ -71,25 +71,45 @@ Your task is to analyze ESG queries and provide structured business intelligence
 
 Query: "${query}"
 
-As Borouge's Chief ESG Intelligence Analyst, provide a comprehensive strategic analysis for this query. Your analysis should include:
+As Borouge's Chief ESG Intelligence Analyst, provide a comprehensive strategic analysis for this query.
 
-1. **Executive Summary**: Key findings and strategic implications for Borouge
-2. **Business Impact Assessment**: How this affects Borouge's operations, market position, and competitive advantage
-3. **Risk Analysis**: Potential risks, timeline, and mitigation strategies
-4. **Opportunity Assessment**: Strategic opportunities, market potential, and competitive advantages
-5. **Regulatory Implications**: Compliance requirements, regulatory landscape, and policy impacts
-6. **Financial Implications**: Cost estimates, investment requirements, and ROI potential
-7. **Strategic Recommendations**: Immediate actions and long-term strategic initiatives
-8. **ESG Alignment**: How this aligns with Borouge's sustainability goals and circular economy strategy
+CRITICAL INSTRUCTION: Extract ALL numerical data, statistics, financial figures, percentages, dates, and quantitative metrics EXCLUSIVELY from the article text content (title and description). DO NOT reference or extract data from any images, charts, graphs, or visual elements. Focus only on textual information.
 
-Provide detailed, actionable insights that enable executive decision-making. Focus on:
-- Quantitative estimates where possible (costs, timelines, market sizes)
-- Borouge's specific geographic footprint (UAE, Middle East, global markets)
-- Petrochemical industry context and competitive landscape
-- ESG, sustainability, and circular economy implications
-- Strategic value and business impact assessment
+Your analysis should include these specific sections:
 
-Return a comprehensive analysis in clear, structured text format.`;
+1. **Executive Summary**: Key findings and strategic implications for Borouge (2-3 sentences)
+
+2. **Quantitative Insights**: Extract and highlight ALL numerical data from the text including:
+   - Financial figures (revenues, costs, investments, market values)
+   - Percentages (growth rates, market shares, efficiency gains)
+   - Volumes and quantities (production capacity, emissions, targets)
+   - Timelines and dates (implementation deadlines, target years)
+   - Performance metrics (KPIs, benchmarks, ratios)
+
+3. **Business Impact Assessment**: How this affects Borouge's operations, market position, and competitive advantage
+
+4. **Risk Analysis**: Potential risks, timeline, and mitigation strategies with specific timeframes
+
+5. **Opportunity Assessment**: Strategic opportunities, market potential, and competitive advantages with quantified benefits where possible
+
+6. **Regulatory Implications**: Compliance requirements, regulatory landscape, and policy impacts with implementation timelines
+
+7. **Financial Implications**: Cost estimates, investment requirements, and ROI potential with specific figures
+
+8. **Strategic Recommendations**: Immediate actions (30-90 days) and long-term strategic initiatives (6 months - 3 years)
+
+9. **ESG Alignment**: How this aligns with Borouge's sustainability goals and circular economy strategy
+
+FORMATTING REQUIREMENTS:
+- Use clear section headers with numbers (1., 2., 3., etc.)
+- Include specific numerical data in each relevant section
+- Provide quantitative estimates where possible (costs, timelines, market sizes)
+- Focus on Borouge's specific geographic footprint (UAE, Middle East, global markets)
+- Include petrochemical industry context and competitive landscape
+- Emphasize ESG, sustainability, and circular economy implications
+- Ensure strategic value and business impact assessment
+
+Return a comprehensive analysis in clear, structured text format with distinct sections for easy reading and scanning.`;
 
     return prompt;
   }

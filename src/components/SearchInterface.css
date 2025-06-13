@@ -171,17 +171,18 @@
   animation: spin 1s linear infinite;
 }
 
-/* Search Mode Description */
-.search-mode-description {
+/* Unified Search Description */
+.search-description {
   margin-top: 1rem;
   text-align: center;
 }
 
-.search-mode-description p {
+.search-description p {
   color: #64748b;
-  font-size: 14px;
+  font-size: 16px;
   margin: 0;
-  font-style: italic;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
 /* Suggestions */

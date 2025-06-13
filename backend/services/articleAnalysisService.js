@@ -210,6 +210,9 @@ Description: ${article.description || 'No description available'}
 Source: ${article.source}
 Published: ${article.published_at}
 
+CRITICAL DATA EXTRACTION INSTRUCTION:
+Extract ALL numerical data, statistics, financial figures, percentages, dates, volumes, and quantitative metrics EXCLUSIVELY from the article text content (title and description above). DO NOT reference, extract, or infer data from any images, charts, graphs, infographics, or visual elements that may be present in the original article. Focus ONLY on the textual information provided above.
+
 SEARCH CONTEXT:
 Original Query: ${queryEnhancements.originalQuery}
 Enhanced Keywords: ${queryEnhancements.enhancedKeywords.join(', ')}
@@ -277,22 +280,28 @@ Provide comprehensive JSON analysis with this exact structure:
     "innovation_strategy": "Alignment with R&D and product innovation priorities"
   },
   "quantitative_insights": {
-    "financial_impact_range": "Estimated financial impact range (e.g., $10-50M annually)",
-    "market_size_affected": "Size of market or business segment affected",
-    "implementation_timeline": "Realistic timeline for implementation",
-    "confidence_level": "Confidence in analysis (high/medium/low)"
+    "financial_impact_range": "Estimated financial impact range extracted from article text (e.g., $10-50M annually)",
+    "market_size_affected": "Size of market or business segment affected based on text data",
+    "numerical_data_extracted": "All specific numbers, percentages, volumes, dates found in article text",
+    "key_metrics": "Important quantitative metrics mentioned in the article text",
+    "implementation_timeline": "Realistic timeline for implementation based on text information",
+    "confidence_level": "Confidence in analysis based on text data quality (high/medium/low)"
   }
 }
 
 ANALYSIS GUIDELINES:
+- Extract and analyze ONLY data from the article text content (title and description)
+- DO NOT reference or extract data from images, charts, graphs, or visual elements
 - Provide actionable, executive-level insights for petrochemical industry
-- Include quantitative estimates where possible (costs, timelines, market sizes)
+- Include quantitative estimates based on text data (costs, timelines, market sizes)
+- Highlight all numerical data found in the article text in the quantitative_insights section
 - Consider Borouge's specific geographic footprint and regulatory environments
 - Emphasize ESG, sustainability, and circular economy implications
-- Reference industry benchmarks and competitive intelligence
-- Focus on strategic value and business impact
+- Reference industry benchmarks and competitive intelligence when mentioned in text
+- Focus on strategic value and business impact based on textual information
 - Consider both defensive (risk mitigation) and offensive (opportunity capture) strategies
-- Tailor recommendations to Borouge's scale, capabilities, and market position`;
+- Tailor recommendations to Borouge's scale, capabilities, and market position
+- Ensure all financial figures and metrics are sourced from article text only`;
   }
 
   // Generate fallback analysis when AI fails

@@ -14,7 +14,7 @@ function App() {
   const [searchResults, setSearchResults] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchMode, setSearchMode] = useState('intelligence'); // 'intelligence' or 'smart-search'
+  // Unified search - no mode switching needed
   const [backendHealth, setBackendHealth] = useState(null);
 
   // Check backend health on component mount
@@ -57,22 +57,50 @@ function App() {
     setSearchResults(null);
 
     try {
-      let results;
-      
-      if (searchMode === 'intelligence') {
-        console.log('🔍 Performing ESG Intelligence search...');
-        results = await esgIntelligenceService.searchESGIntelligence(query);
-      } else {
-        console.log('🔍 Performing Smart Search...');
-        results = await smartSearchService.performSmartSearch(query);
-      }
+      console.log('🔍 Performing Unified ESG Intelligence search...');
 
-      if (results.success) {
-        setSearchResults(results);
-        console.log(`✅ Search completed in ${results.responseTime}ms`);
-      } else {
-        throw new Error(results.error?.message || 'Search failed');
-      }
+      // Perform both searches in parallel for comprehensive results
+      const [intelligenceResults, smartSearchResults] = await Promise.allSettled([
+        esgIntelligenceService.searchESGIntelligence(query),
+        smartSearchService.performSmartSearch(query)
+      ]);
+
+      // Combine results from both sources
+      const combinedResults = {
+        success: true,
+        query: query,
+        timestamp: new Date().toISOString(),
+        responseTime: Math.max(
+          intelligenceResults.status === 'fulfilled' ? intelligenceResults.value.responseTime || 0 : 0,
+          smartSearchResults.status === 'fulfilled' ? smartSearchResults.value.responseTime || 0 : 0
+        ),
+
+        // AI Analysis from ESG Intelligence
+        aiAnalysis: intelligenceResults.status === 'fulfilled' && intelligenceResults.value.success
+          ? intelligenceResults.value.response
+          : null,
+
+        // News and Executive Summary from Smart Search
+        newsData: smartSearchResults.status === 'fulfilled' && smartSearchResults.value.success
+          ? {
+              articles: smartSearchResults.value.articles || [],
+              executiveSummary: smartSearchResults.value.comprehensiveExecutiveSummary || null,
+              analytics: smartSearchResults.value.analytics || null,
+              actionItems: smartSearchResults.value.actionItems || []
+            }
+          : null,
+
+        // Combined metadata
+        metadata: {
+          intelligenceSuccess: intelligenceResults.status === 'fulfilled' && intelligenceResults.value.success,
+          smartSearchSuccess: smartSearchResults.status === 'fulfilled' && smartSearchResults.value.success,
+          source: 'unified_esg_platform'
+        }
+      };
+
+      setSearchResults(combinedResults);
+      console.log(`✅ Unified search completed in ${combinedResults.responseTime}ms`);
+
     } catch (error) {
       console.error('❌ Search error:', error);
       setError({
@@ -91,11 +119,7 @@ function App() {
     setError(null);
   };
 
-  const handleModeChange = (mode) => {
-    setSearchMode(mode);
-    setSearchResults(null);
-    setError(null);
-  };
+
 
   return (
     <ErrorBoundary>
@@ -128,8 +152,6 @@ function App() {
             <SearchInterface
               onSearch={handleSearch}
               isLoading={isLoading}
-              searchMode={searchMode}
-              onModeChange={handleModeChange}
               currentQuery={currentQuery}
             />
 
@@ -174,7 +196,6 @@ function App() {
               <ResultsDisplay
                 results={searchResults}
                 query={currentQuery}
-                searchMode={searchMode}
                 onClear={handleClearResults}
               />
             )}
