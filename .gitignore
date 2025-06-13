@@ -248,3 +248,4 @@ config.local.json
 # Package manager alternatives
 pnpm-lock.yaml
 .pnpm-debug.log*
+.vercel
